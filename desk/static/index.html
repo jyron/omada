@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Northside Plumbing | Front desk</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%231c3d38'/%3E%3Cpath d='M12 28V12l16 16V12' stroke='%23eff7c8' stroke-width='4' fill='none'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="/static/style.css" />
+    <script defer src="/static/app.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Northside Plumbing home"
+        ><span class="brandmark">N<span>↗</span></span
+        ><span id="brand-name"
+          >Northside Plumbing<small>YOUR FRONT DESK, HANDLED.</small></span
+        ></a
+      >
+      <nav aria-label="Main navigation">
+        <button class="nav-button active" data-view="inbox">
+          Owner inbox <span id="handoff-count" class="nav-count">0</span>
+        </button>
+        <button class="nav-button" data-view="customer">Customer chat</button>
+        <button class="nav-button" data-view="operations">Shop activity</button>
+      </nav>
+      <span class="mode"><i></i><span id="mode">Connecting</span></span>
+    </header>
+    <main>
+      <section class="page-heading">
+        <div>
+          <p class="eyebrow">A LITTLE LESS BUSYWORK.</p>
+          <h1 id="page-title">A good day starts here.</h1>
+          <p id="page-subtitle">
+            Your conversations, visits, and follow-ups in one place.
+          </p>
+        </div>
+        <div class="clock-card">
+          <span class="eyebrow">DEMO CLOCK <span id="timezone"></span></span
+          ><strong id="clock">Loading…</strong>
+          <div class="clock-actions">
+            <button data-step="15_minutes">+15 min</button
+            ><button data-step="1_day">+1 day</button
+            ><button data-step="friday_morning">Friday, 8 am ↗</button
+            ><button id="reset" class="text-button">Reset demo</button>
+          </div>
+        </div>
+      </section>
+      <section class="stats" aria-label="Shop summary" id="stats"></section>
+      <section id="view-inbox" class="view">
+        <div class="inbox-layout">
+          <aside class="panel customer-list-panel">
+            <div class="panel-heading">
+              <h2>Conversations</h2>
+              <span class="muted" id="customer-total"></span>
+            </div>
+            <div id="customer-list"></div>
+            <div class="list-footer">
+              <span class="status-dot"></span> The front desk is on it.
+            </div>
+          </aside>
+          <section class="panel thread-panel">
+            <div class="panel-heading thread-heading">
+              <div>
+                <h2 id="thread-name">Select a customer</h2>
+                <span class="muted" id="thread-address"></span>
+              </div>
+              <span id="thread-state"></span>
+            </div>
+            <div id="handoff-banner" class="handoff-banner" hidden></div>
+            <div
+              id="owner-thread"
+              class="messages"
+              aria-live="polite"
+              aria-label="Customer conversation"
+            ></div>
+            <form id="reply-form" class="composer">
+              <label for="reply-text">Reply as the owner</label
+              ><textarea
+                id="reply-text"
+                rows="2"
+                maxlength="2000"
+                placeholder="Add your personal touch…"
+                required
+              ></textarea>
+              <div class="composer-actions">
+                <label class="check-label"
+                  ><input type="checkbox" id="reply-resume" /> Resume assistant
+                  after sending</label
+                ><button type="submit" class="primary">Send reply ↗</button>
+              </div>
+            </form>
+          </section>
+          <aside class="context-column">
+            <section class="panel">
+              <div class="panel-heading">
+                <h2>Customer details</h2>
+                <span class="tiny-label">ON FILE</span>
+              </div>
+              <div id="customer-details" class="panel-body"></div>
+            </section>
+            <section class="panel note-card">
+              <p class="eyebrow">MAKE IT YOUR FRONT DESK</p>
+              <h2>A new rule? Just say it.</h2>
+              <p>
+                Update opening days, save a business detail, or schedule a
+                report in the owner assistant below.
+              </p>
+              <button id="go-owner" class="text-button">
+                Open owner assistant ↗
+              </button>
+            </section>
+          </aside>
+        </div>
+      </section>
+      <section id="view-customer" class="view" hidden>
+        <div class="customer-layout">
+          <section class="panel simulator">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">CUSTOMER VIEW</p>
+                <h2>Let’s get it taken care of.</h2>
+              </div>
+              <label class="select-label"
+                >Chatting as<select
+                  id="customer-select"
+                  aria-label="Chatting as"
+                ></select
+              ></label>
+            </div>
+            <div id="customer-paused" class="handoff-banner" hidden>
+              The owner is handling this conversation. Your messages will reach
+              them here.
+            </div>
+            <div
+              id="customer-thread"
+              class="messages"
+              aria-live="polite"
+              aria-label="Front desk chat"
+            ></div>
+            <div id="slot-options" class="slot-options"></div>
+            <div id="customer-examples" class="examples"></div>
+            <form id="customer-form" class="composer">
+              <label for="customer-text">Message the front desk</label>
+              <div class="input-row">
+                <textarea
+                  id="customer-text"
+                  rows="2"
+                  maxlength="2000"
+                  placeholder="Tell us what needs attention…"
+                  required
+                ></textarea
+                ><button type="submit" class="primary">Send ↗</button>
+              </div>
+            </form>
+          </section>
+          <aside class="context-column">
+            <section class="panel">
+              <div class="panel-heading"><h2>A familiar face</h2></div>
+              <div id="sim-details" class="panel-body"></div>
+            </section>
+            <section class="panel note-card">
+              <p class="eyebrow">TRY THE WHOLE CONVERSATION</p>
+              <h2>From a leak to a booked visit.</h2>
+              <p>
+                Choose a sample message, pick a visit, then check the owner
+                inbox. Saved addresses and gate codes travel with the booking.
+              </p>
+              <p class="muted">
+                For the new customer, use “Name: Alex Morgan”, then “Address: 55
+                Birch Road”.
+              </p>
+            </section>
+          </aside>
+        </div>
+      </section>
+      <section id="view-operations" class="view" hidden>
+        <div class="operations-layout">
+          <section class="panel">
+            <div class="panel-heading">
+              <h2>Visits on the books</h2>
+              <span class="tiny-label">LOCAL CALENDAR</span>
+            </div>
+            <div id="visits" class="table-wrap"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-heading">
+              <h2>The team</h2>
+              <span class="tiny-label" id="team-count"></span>
+            </div>
+            <div id="team" class="panel-body"></div>
+            <div
+              id="business-details"
+              class="panel-body business-details"
+            ></div>
+          </section>
+          <section class="panel">
+            <div class="panel-heading">
+              <h2>Quotes</h2>
+              <span class="muted">Owed → sent → resolved</span>
+            </div>
+            <div id="quotes" class="panel-body"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-heading">
+              <h2>On autopilot</h2>
+              <span class="status-pill">Active</span>
+            </div>
+            <div id="schedules" class="panel-body"></div>
+            <div class="automation-note">
+              <strong>Every morning at 8</strong>
+              <p>
+                Tomorrow’s visit reminders and follow-ups on quotes quiet for 3
+                days.
+              </p>
+            </div>
+          </section>
+          <section class="panel audit-panel">
+            <div class="panel-heading">
+              <h2>The paper trail</h2>
+              <span class="muted">What happened, and why</span>
+            </div>
+            <div id="events" class="panel-body"></div>
+          </section>
+        </div>
+      </section>
+      <section id="owner-assistant" class="panel owner-assistant">
+        <div class="assistant-intro">
+          <span class="assistant-symbol">✳</span>
+          <p class="eyebrow">FOR THE OWNER</p>
+          <h2>Tell your desk<br />what you need.</h2>
+          <p>Business rules, recurring reports, and your morning rundown.</p>
+          <div id="owner-examples" class="examples"></div>
+        </div>
+        <div class="assistant-conversation">
+          <div
+            id="owner-messages"
+            class="messages"
+            aria-live="polite"
+            aria-label="Owner assistant"
+          ></div>
+          <form id="owner-form" class="composer">
+            <label for="owner-text">Instruction to your assistant</label>
+            <div class="input-row">
+              <textarea
+                id="owner-text"
+                rows="2"
+                maxlength="2000"
+                placeholder="Every Friday, tell me who is still waiting on a quote"
+                required
+              ></textarea
+              ><button type="submit" class="primary">Send ↗</button>
+            </div>
+          </form>
+        </div>
+      </section>
+      <footer>
+        <span
+          >Northside front desk <span class="footer-dot">•</span> Messaging and
+          calendars are simulated.</span
+        ><span id="footer-mode"></span>
+      </footer>
+    </main>
+    <div id="toast" role="status" hidden></div>
+  </body>
+</html>
