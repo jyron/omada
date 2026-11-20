@@ -1,4 +1,3 @@
-import os
 from contextlib import asynccontextmanager
 from datetime import timedelta
 from pathlib import Path
@@ -11,7 +10,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
 from .frontdesk import chat, context, conversation_lock, profile
-from .intents import REPORT_NAMES, WEEK, model_name
+from .intents import REPORT_NAMES, WEEK
+from .llm import configuration
 from .jobs import next_run, run_due
 from .store import CONFIG, database, event, initialize, message, now, put, reset, rows, setting
 
@@ -47,6 +47,7 @@ def tick():
 
 @asynccontextmanager
 async def lifespan(app):
+    configuration()
     initialize()
     scheduler = BackgroundScheduler(timezone=CONFIG["timezone"])
     scheduler.add_job(tick, "interval", seconds=5, id="desk-work", max_instances=1, coalesce=True)
@@ -75,6 +76,7 @@ def health():
 
 @app.get("/api/state")
 def state():
+    ai = configuration()
     with database() as db:
         at = now(db)
         schedules = rows(db, "SELECT * FROM schedules ORDER BY id")
@@ -84,8 +86,10 @@ def state():
             schedule["next_run"] = next_run(schedule, at).isoformat()
         return {
             "now": at.isoformat(), "timezone": CONFIG["timezone"],
-            "mode": "OpenAI" if os.getenv("OPENAI_API_KEY") else "Guided demo",
-            "model": model_name() if os.getenv("OPENAI_API_KEY") else None,
+            "mode": ai.label if ai.enabled else "Guided demo",
+            "provider": ai.provider,
+            "configured_model": ai.model,
+            "model": ai.model if ai.enabled else None,
             "business": {**CONFIG, "open_weekdays": setting(db, "open_days"), "facts": setting(db, "facts")},
             "customers": rows(db, """SELECT c.*, (SELECT body FROM messages WHERE customer=c.id ORDER BY id DESC LIMIT 1) AS last_message,
                                       (SELECT at FROM messages WHERE customer=c.id ORDER BY id DESC LIMIT 1) AS last_at

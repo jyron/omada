@@ -1,9 +1,7 @@
-import json
-import os
 from datetime import date, timedelta
 from typing import Literal
 
-from openai import OpenAI
+from .llm import configuration, generate
 from pydantic import BaseModel, ConfigDict, Field
 
 WEEK = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
@@ -62,29 +60,18 @@ Ask for clarification if the report or weekday is missing. Use reply for unsuppo
 Never claim an action occurred in reply text. The application renders action confirmations."""
 
 
-def model_name():
-    return os.getenv("OPENAI_MODEL") or "gpt-4.1-mini"
-
-
 def decide(text, context, *, owner=False):
-    if not os.getenv("OPENAI_API_KEY"):
+    if not configuration().enabled:
         return demo_owner(text, context) if owner else demo_customer(text, context)
-    kind = OwnerTurn if owner else CustomerTurn
-    with OpenAI(timeout=30, max_retries=1) as client:
-        response = client.responses.parse(
-            model=model_name(),
-            instructions=OWNER_PROMPT if owner else CUSTOMER_PROMPT,
-            input=json.dumps({"context": context, "message": text}),
-            text_format=kind,
-            max_output_tokens=1600,
-        )
-    if response.output_parsed is None:
-        raise ValueError("The model did not return a decision")
-    return response.output_parsed
+    return generate(
+        OWNER_PROMPT if owner else CUSTOMER_PROMPT,
+        {"context": context, "message": text},
+        OwnerTurn if owner else CustomerTurn,
+    )
 
 
 # Exact demo fixtures keep the no-key walkthrough reproducible. Natural-language
-# interpretation is delegated to the OpenAI SDK, not a custom intent parser.
+# interpretation is delegated to the provider adapter, not a custom intent parser.
 def normalized(text):
     return text.strip().rstrip(".?!").casefold()
 
@@ -115,7 +102,7 @@ def demo_owner(text, ctx):
     if key.startswith("remember ") and "=" in text:
         name, _, body = text.strip()[9:].partition("=")
         return OwnerTurn(action="fact", key=name.strip(), body=body.strip())
-    return OwnerTurn(action="reply", body="Guided demo: use an example below. Set OPENAI_API_KEY to interpret other instructions.")
+    return OwnerTurn(action="reply", body="Guided demo: use an example below. Configure an AI provider to interpret other instructions.")
 
 
 def demo_customer(text, ctx):
@@ -149,4 +136,4 @@ def demo_customer(text, ctx):
         return CustomerTurn(action="reply", body=body)
     if key in ctx["facts"]:
         return CustomerTurn(action="reply", body=ctx["facts"][key])
-    return CustomerTurn(action="reply", body="Guided demo: choose an example below, or enter Name:, Address:, or Gate: followed by your details. Other requests need OPENAI_API_KEY.")
+    return CustomerTurn(action="reply", body="Guided demo: choose an example below, or enter Name:, Address:, or Gate: followed by your details. Other requests need a configured AI provider.")

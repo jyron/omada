@@ -3,9 +3,17 @@ services:
     build: .
     ports:
       - "127.0.0.1:8000:8000"
+    env_file:
+      - path: .env
+        required: false
     environment:
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-anthropic/claude-sonnet-5-5}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_API_BASE: ${LLM_API_BASE:-}
+      LLM_API_KEY_ENV: ${LLM_API_KEY_ENV:-}
+      LLM_MODE: ${LLM_MODE:-auto}
+      LLM_OUTPUT_MODE: ${LLM_OUTPUT_MODE:-schema}
       DESK_CONFIG: /app/desk/business.json
     volumes:
       - front-desk-data:/app/data

@@ -1,22 +1,19 @@
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
-import json
 
-import httpx
 import pytest
 from fastapi.testclient import TestClient
-from openai import OpenAI
 
 from desk.api import app, tick
-from desk.frontdesk import chat, context, technician
-from desk.intents import CustomerTurn, decide
+from desk.frontdesk import chat, technician
+from desk.llm import AIError
 from desk.store import database, initialize, now, put, rows, setting
 
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
     monkeypatch.setenv("DESK_DB", str(tmp_path / "desk.sqlite3"))
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setenv("LLM_MODE", "demo")
     with TestClient(app) as client:
         yield client
 
@@ -159,20 +156,9 @@ def test_minute_schedule_and_removal(client):
     assert sum(m["body"] == "Open handoffs: none." for m in messages) == 1
 
 
-def test_openai_sdk_structured_output_and_service_failure(client, monkeypatch):
-    def handle(request):
-        payload = json.loads(request.content)
-        assert payload["text"]["format"]["type"] == "json_schema"
-        assert "1402" in payload["input"]
-        decision = CustomerTurn(action="offer", issue="Pipe leak").model_dump(mode="json")
-        return httpx.Response(200, json={"id":"resp_test", "created_at":0, "object":"response", "model":"gpt-4.1-mini", "status":"completed", "output":[{"id":"msg_test", "type":"message", "role":"assistant", "status":"completed", "content":[{"type":"output_text", "text":json.dumps(decision), "annotations":[]}]}]})
-    monkeypatch.setenv("OPENAI_API_KEY", "test-only-key")
-    monkeypatch.setattr("desk.intents.OpenAI", lambda **kw: OpenAI(api_key="test-only-key", http_client=httpx.Client(transport=httpx.MockTransport(handle))))
-    with database() as db:
-        ctx = context(db, 1)
-    assert decide("The pipe under my sink is leaking", ctx).issue == "Pipe leak"
+def test_provider_service_failure_hands_off_without_changing_rules(client, monkeypatch):
     def fail(*args, **kwargs):
-        raise ValueError("No decision")
+        raise AIError("Provider unavailable")
     monkeypatch.setattr("desk.frontdesk.decide", fail)
     assert send(client, 1, "I need help")["status"] == "waiting_for_owner"
     assert "could not process" in send(client, None, "Close Sunday")["reply"]

@@ -6,7 +6,7 @@ from datetime import date, datetime, time, timedelta
 from threading import Lock
 
 from fastapi import HTTPException
-from openai import OpenAIError
+from .llm import AIError
 
 from .intents import WEEK, CustomerTurn, OwnerTurn, decide
 from .jobs import deliver, report, run_due
@@ -193,7 +193,7 @@ def chat(customer, text):
         if not paused:
             try:
                 turn = decide(text, ctx, owner=customer is None)
-            except (OpenAIError, ValueError, TypeError, KeyError) as exc:
+            except (AIError, ValueError, TypeError, KeyError) as exc:
                 logger.warning("Assistant decision failed: %s", type(exc).__name__)
                 if customer is None:
                     turn = OwnerTurn(action="reply", body="The AI service could not process this instruction. Please retry.")

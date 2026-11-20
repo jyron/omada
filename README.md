@@ -12,9 +12,55 @@ docker compose up --build
 
 Open [http://localhost:8000](http://localhost:8000). SQLite is stored in the `front-desk-data` Docker volume and survives container restarts. The app runs as one server process. No frontend build step or hosted service is required.
 
-Without a key, **Guided demo** uses the exact sample messages shown in the interface. It also accepts `Name:`, `Address:`, `Gate:`, and `Remember key = value` inputs. This adapter is a small set of fixtures; OpenAI handles free-form language when configured.
+Without a key, **Guided demo** uses the exact sample messages shown in the interface. It also accepts `Name:`, `Address:`, `Gate:`, and `Remember key = value` inputs. This adapter is a small set of fixtures; The selected AI provider handles free-form language when configured.
 
-To enable OpenAI, copy `.env.example` to `.env`, set `OPENAI_API_KEY`, and restart with `docker compose up --build`. `OPENAI_MODEL` defaults to `gpt-4.1-mini`. The [official OpenAI Python SDK](https://github.com/openai/openai-python) parses structured decisions into Pydantic models. The model proposes actions; Python checks and commits them. An unavailable AI service sends customer requests to the owner and leaves owner instructions unapplied.
+## AI provider adapter
+
+**Anthropic Claude is the default**, using `anthropic/claude-sonnet-5-5`. Copy `.env.example` to `.env`, set `ANTHROPIC_API_KEY`, and restart with `docker compose up --build`.
+
+`desk/llm.py` exposes one structured-decision interface. Claude uses the [official Anthropic SDK](https://platform.claude.com/docs/en/build-with-claude/structured-outputs), including its schema conversion and validation. Other providers use [LiteLLM](https://docs.litellm.ai/docs/providers). Provider protocols, authentication and request translation come from these libraries. Switch providers through configuration; booking and scheduling code stays the same.
+
+| Setting | Purpose |
+| --- | --- |
+| `LLM_MODEL` | LiteLLM `provider/model` identifier; defaults to `anthropic/claude-sonnet-5-5` |
+| `LLM_API_KEY` | Optional generic key for the selected provider; overrides its native key |
+| `LLM_API_BASE` | Optional custom endpoint URL |
+| `LLM_API_KEY_ENV` | Optional name of the environment variable holding a provider key; defaults to `<PROVIDER>_API_KEY` |
+| `LLM_MODE` | `auto` enables AI with a key, endpoint or Ollama provider; `demo` forces sample conversations; `live` enables provider-native authentication such as cloud IAM |
+| `LLM_OUTPUT_MODE` | `schema` requests structured output; `json` supplies the schema in the prompt for plain chat endpoints |
+
+Examples for `.env`:
+
+```dotenv
+# Anthropic (default)
+LLM_MODEL=anthropic/claude-sonnet-5-5
+ANTHROPIC_API_KEY=your-key
+```
+
+```dotenv
+# Another hosted provider, using the same adapter
+LLM_MODEL=openai/gpt-4.1-mini
+LLM_API_KEY=your-key
+```
+
+```dotenv
+# Local Ollama from Docker Desktop
+LLM_MODEL=ollama_chat/llama3.2
+LLM_API_BASE=http://host.docker.internal:11434
+LLM_OUTPUT_MODE=json
+```
+
+```dotenv
+# A custom OpenAI-compatible server (the prefix selects its wire protocol)
+LLM_MODEL=openai/your-model-name
+LLM_API_BASE=http://host.docker.internal:1234/v1
+LLM_API_KEY=local
+LLM_OUTPUT_MODE=json
+```
+
+Other LiteLLM providers use their documented model prefix and credentials. Compose loads `.env` into the container, including provider-specific variables; the optional `env_file` requires Docker Compose 2.24 or newer. For provider-specific credentials set only in the host shell, use `LLM_API_KEY`, write them to `.env`, or explicitly forward them in Compose. Native Python execution reads `.env` too. For a local model outside Docker, use `localhost` instead of `host.docker.internal`.
+
+Both output modes validate the response with Pydantic before performing an action. Incomplete or malformed output and provider failures follow the existing owner-handoff path. There is no automatic switch to another provider. Without credentials, the default remains Guided demo. The model proposes actions; Python checks and commits them.
 
 ## Five-minute walkthrough
 
@@ -27,7 +73,7 @@ The demo starts on **Thursday, November 19, 2026, at 7:45 am America/Chicago**. 
 5. **Watch the morning work.** Click **+15 min** from the starting clock. Sam receives a reminder for Friday’s appointment and a follow-up on his sent quote, which has been quiet for four days. The owner assistant receives the morning rundown. Shop activity records each delivery. Repeated refreshes and restarts do not send duplicates.
 6. **Schedule a report in plain language.** Click **Every Friday, tell me who is still waiting on a quote**, then **Friday, 8 am**. The delivered report lists Jo Ellis, whose estimate the shop owes. Sam’s already-sent quote is excluded. The schedule and its next run are visible under **On autopilot**. A second example schedules daily handoff reports at 9:30 am. Remove schedules using their **Remove** buttons.
 7. **Close the loop on quotes.** Under **Shop activity → Quotes**, change Jo’s quote from **Owed** to **Sent**. This adds a simulated quote message. Jo leaves the quotes-owed report and becomes eligible for a follow-up after three quiet days. **Accepted** and **Declined** stop follow-ups. Customer activity restarts the quiet period; open handoffs pause customer automation.
-8. **Save a fact.** Tell the owner assistant `Remember parking = Use the side lot`. In customer chat, send `parking` in Guided demo, or ask a natural-language parking question with OpenAI enabled.
+8. **Save a fact.** Tell the owner assistant `Remember parking = Use the side lot`. In customer chat, send `parking` in Guided demo, or ask a natural-language parking question with AI enabled.
 
 ## Business configuration
 
@@ -53,6 +99,6 @@ python3 -m venv .venv
 
 `DESK_DB` changes the SQLite path, which defaults to `data/desk.sqlite3`. `DESK_CONFIG` selects a different business configuration file. Environment variables override `.env`. [API documentation](http://localhost:8000/docs) is available while running.
 
-Run the focused workflow checks with `.venv/bin/python -m pytest -q`. They cover booking races, overlapping visits, changed rules, missing details, handoff/resume, late reminders, quote status and silence, report recurrence, persistence, delivery deduplication, and the SDK parsing/error boundary. They use temporary databases and no live AI calls.
+Run the focused workflow checks with `.venv/bin/python -m pytest -q`. They cover booking races, overlapping visits, changed rules, missing details, handoff/resume, late reminders, quote status and silence, report recurrence, persistence, delivery deduplication, and the provider-adapter validation/error boundary. They use temporary databases and no live AI calls.
 
 See [DESIGN.md](DESIGN.md) for the one-page implementation note and verification record.
