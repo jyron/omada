@@ -1,0 +1,12 @@
+services:
+  front-desk:
+    build: .
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CLAUDE_MODEL: ${CLAUDE_MODEL:-claude-haiku-5-5}
+    volumes:
+      - front-desk-data:/app/data
+volumes:
+  front-desk-data:

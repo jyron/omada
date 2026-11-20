@@ -1,0 +1,11 @@
+{
+  "name": "Northside Plumbing",
+  "timezone": "America/Chicago",
+  "opening_hour": 9,
+  "closing_hour": 17,
+  "visit_minutes": 60,
+  "open_weekdays": [0, 1, 2, 3, 4, 5, 6],
+  "services": ["water heater leak", "drain blockage", "pipe leak", "fixture repair"],
+  "facts": {"pricing": "The technician assesses the job on site. The office provides the written quote.", "service_area": "Northside and the surrounding neighborhoods."},
+  "technicians": ["Avery", "Blair", "Cameron", "Drew"]
+}
