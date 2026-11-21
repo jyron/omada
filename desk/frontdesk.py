@@ -114,7 +114,9 @@ def customer_action(db, customer, turn, at, source):
     if turn.action == "reply":
         return turn.body or "Could you tell me a little more?"
     if turn.action == "handoff":
-        reason = turn.body or "Owner review requested"
+        reason = turn.body.strip() or turn.issue.strip() or db.execute(
+            "SELECT body FROM messages WHERE id=?", (source,)
+        ).fetchone()["body"]
         db.execute("UPDATE customers SET handoff=?,offers='[]' WHERE id=?", (reason, customer))
         event(db, at, f"Handoff for {person['name']}", reason, source)
         return "I’ve passed your message to the owner. They’ll reply here."
@@ -208,7 +210,7 @@ def chat(customer, text):
                 return {"reply": None, "status": "waiting_for_owner"}
             body = owner_action(db, turn, at, source) if customer is None else customer_action(db, customer, turn, at, source)
             if body is not None:
-                message(db, customer, "assistant", body, at)
+                message(db, customer, "assistant", body, at, "report" if customer is None and turn.action == "report" else "chat")
             else:
                 body = db.execute("SELECT body FROM messages WHERE customer=? ORDER BY id DESC LIMIT 1", (customer,)).fetchone()[0]
             return {"reply": body, "status": "waiting_for_owner" if customer is not None and profile(db, customer)["handoff"] else "active"}

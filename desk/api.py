@@ -57,7 +57,7 @@ async def lifespan(app):
     scheduler.shutdown(wait=True)
 
 
-app = FastAPI(title="Northside Plumbing front desk", lifespan=lifespan)
+app = FastAPI(title=f"{CONFIG['name']} front desk", lifespan=lifespan)
 STATIC = Path(__file__).with_name("static")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
@@ -99,6 +99,9 @@ def state():
                                   JOIN customers c ON c.id=v.customer JOIN technicians t ON t.id=v.tech ORDER BY start"""),
             "quotes": rows(db, "SELECT q.*,c.name AS customer_name FROM quotes q JOIN customers c ON c.id=q.customer ORDER BY q.id"),
             "schedules": schedules,
+            "deliveries": rows(db, """SELECT m.*,c.name AS customer_name FROM messages m
+                                      LEFT JOIN customers c ON c.id=m.customer
+                                      WHERE m.kind!='chat' ORDER BY m.id DESC LIMIT 100"""),
             "owner_messages": rows(db, "SELECT * FROM (SELECT * FROM messages WHERE customer IS NULL ORDER BY id DESC LIMIT 100) ORDER BY id"),
             "events": rows(db, """SELECT e.*,m.body AS source_body,m.customer AS customer FROM events e
                                   LEFT JOIN messages m ON m.id=e.source ORDER BY e.id DESC LIMIT 100"""),
@@ -162,7 +165,7 @@ def update_quote(quote_id: int, body: QuoteInput):
         source = None
         if body.status == "sent":
             source = message(db, quote["customer"], "owner", f"Your quote for {quote['job']} has been sent. Let us know if you would like to go ahead.", at, "quote")
-        event(db, at, f"Quote #{quote_id} marked {body.status}", "Owner updated the quote in the inbox", source)
+        event(db, at, f"Quote #{quote_id} marked {body.status}", "Owner updated the quote on the Quotes page", source)
     return {"status": body.status}
 
 
@@ -204,3 +207,9 @@ def advance(body: AdvanceInput):
 def reset_demo():
     reset()
     return {"status": "reset"}
+
+
+@app.get("/api/documentation/{document}")
+def documentation(document: Literal["readme", "design"]):
+    filename = {"readme": "README.md", "design": "DESIGN.md"}[document]
+    return FileResponse(Path(__file__).parent.parent / filename, media_type="text/plain")

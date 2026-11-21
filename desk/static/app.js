@@ -7,44 +7,92 @@ const esc = (value) =>
         c
       ],
   );
-let state,
-  selected = 1,
-  view = "inbox",
-  busy = false,
-  refreshId = 0,
-  renderedCustomer = null;
-let toastTimer;
-const titles = {
-  inbox: [
-    "A good day starts here.",
-    "Your conversations, visits, and follow-ups in one place.",
+const pages = {
+  requirements: [
+    "Requirements",
+    "Where to find and verify each requirement.",
+    "Requirements 1–5",
   ],
   customer: [
-    "A helpful voice. Every time.",
-    "See the front desk from your customer’s side.",
+    "Customer chat & booking",
+    "Customer conversations, saved details, available visits and confirmations.",
+    "Requirements 1 & 2",
   ],
-  operations: [
-    "The shop, at a glance.",
-    "A clear view of the work ahead and what’s already handled.",
+  inbox: [
+    "Owner inbox",
+    "Review handoffs, reply to customers and resume automatic replies.",
+    "Requirement 3",
+  ],
+  appointments: [
+    "Appointments",
+    "Scheduled visits, assigned technicians and service details.",
+    "Requirements 1 & 2",
+  ],
+  quotes: [
+    "Quotes",
+    "Track estimates owed, quotes sent and customer decisions.",
+    "Requirements 1 & 4",
+  ],
+  rules: [
+    "Business rules",
+    "View business information and change rules through owner instructions.",
+    "Requirements 2 & 3",
+  ],
+  automation: [
+    "Automations & reports",
+    "Reminders, quote follow-ups, report schedules and delivery history.",
+    "Requirement 4",
+  ],
+  activity: [
+    "Activity log",
+    "Recorded actions with the reason and message that triggered them.",
+    "Requirement 3",
+  ],
+  configuration: [
+    "Configuration",
+    "Business settings, AI provider and local delivery documentation.",
+    "Requirements 1 & 5",
   ],
 };
-const sampleCustomers = [
-  ["Leaking faucet", "My kitchen faucet is leaking."],
-  ["Saved details", "What address and gate code do you have for me?"],
-  ["Last visit", "What happened on my last visit?"],
-  ["Pricing", "How much does a visit cost?"],
-  ["Tomorrow", "Tomorrow please"],
+const kinds = {
+  chat: "Message",
+  confirmation: "Booking confirmation",
+  reminder: "Visit reminder",
+  quote_followup: "Quote follow-up",
+  report: "Report",
+  quote: "Sent quote",
+};
+const customerExamples = [
+  ["Service request", "My kitchen faucet is leaking."],
+  [
+    "Saved address and gate code",
+    "What address and gate code do you have for me?",
+  ],
+  ["Previous visit", "What happened on my last visit?"],
+  ["Business hours", "What are your hours?"],
+  ["Visit pricing", "How much does a visit cost?"],
+  ["Tomorrow’s availability", "Tomorrow please"],
   ["Sunday availability", "Any openings on Sunday?"],
-  ["Request a quote", "I need a quote for a water heater replacement."],
-  ["Talk to the owner", "I want to speak to the owner about a refund."],
+  ["Request an estimate", "I need a quote for a water heater replacement."],
+  ["Request owner review", "I want to speak to the owner about a refund."],
 ];
-const sampleOwners = [
-  "We stopped doing Sunday calls",
-  "Every Friday, tell me who is still waiting on a quote",
-  "Show today's rundown",
-  "Every day at 9:30 am, show open handoffs",
-];
-function formatDate(value, options = {}) {
+let state,
+  conversation,
+  selected = 1,
+  view = "requirements",
+  busy = false,
+  errorSource = null,
+  refreshId = 0,
+  renderedCustomer = null;
+const notice = bootstrap.Toast.getOrCreateInstance($("#notice"), {
+  delay: 4000,
+});
+const resetModal = bootstrap.Modal.getOrCreateInstance($("#reset-modal"));
+function html(selector, content) {
+  const el = $(selector);
+  if (el.innerHTML !== content) el.innerHTML = content;
+}
+function date(value, options = {}) {
   return new Intl.DateTimeFormat("en-US", {
     timeZone: state?.timezone || "America/Chicago",
     month: "short",
@@ -54,382 +102,500 @@ function formatDate(value, options = {}) {
     ...options,
   }).format(new Date(value));
 }
-function initials(name) {
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("");
+function empty(text) {
+  return `<div class="empty-state">${esc(text)}</div>`;
 }
-function toast(text, error = false) {
-  clearTimeout(toastTimer);
-  $("#toast").textContent = text;
-  $("#toast").classList.toggle("error", error);
-  $("#toast").hidden = false;
-  toastTimer = setTimeout(
-    () => {
-      $("#toast").hidden = true;
-    },
-    error ? 7000 : 3500,
-  );
+function notify(text) {
+  $("#notice-text").textContent = text;
+  notice.show();
 }
-async function api(path, body, method = "POST") {
+function showError(text, source = "request") {
+  errorSource = source;
+  $("#request-error").textContent = text;
+  $("#request-error").hidden = false;
+}
+async function api(path, body, method) {
   const response = await fetch(path, {
-    method: body === undefined && method === "POST" ? "GET" : method,
-    headers: body !== undefined ? { "Content-Type": "application/json" } : {},
+    method: method || (body === undefined ? "GET" : "POST"),
+    headers: body === undefined ? {} : { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
+    const error = await response.json().catch(() => ({}));
     throw new Error(
-      typeof data.detail === "string"
-        ? data.detail
-        : Array.isArray(data.detail)
-          ? data.detail.map((v) => v.msg).join(", ")
-          : "Could not complete that request.",
+      typeof error.detail === "string"
+        ? error.detail
+        : Array.isArray(error.detail)
+          ? error.detail.map((v) => v.msg).join(", ")
+          : `Request failed (${response.status}).`,
     );
   }
   return response.json();
 }
 async function refresh() {
   const request = ++refreshId,
-    customerId = selected;
-  const [newState, conversation] = await Promise.all([
+    customer = selected;
+  const result = await Promise.all([
     api("/api/state"),
-    api(`/api/customers/${customerId}/conversation`),
+    api(`/api/customers/${customer}/conversation`),
   ]);
   if (request !== refreshId) return;
-  state = newState;
+  [state, conversation] = result;
+  if (errorSource === "refresh") {
+    $("#request-error").hidden = true;
+    errorSource = null;
+  }
   renderState();
-  renderConversation(conversation);
+  renderConversation();
 }
-async function mutate(path, body, success = "", method = "POST") {
-  if (busy) return false;
+async function mutate(path, body, method) {
+  if (busy) return null;
   busy = true;
   document.body.setAttribute("aria-busy", "true");
-  document.querySelectorAll('button[type="submit"]').forEach((el) => {
-    el.disabled = true;
-    el.dataset.label = el.textContent;
-    el.textContent = "Sending…";
-  });
+  $("#request-error").hidden = true;
+  document
+    .querySelectorAll(
+      'button[type="submit"], [data-step], [data-choice], [data-resume], [data-remove-schedule], #confirm-reset',
+    )
+    .forEach((button) => {
+      button.disabled = true;
+    });
   try {
-    await api(path, body, method);
+    const result = await api(path, body, method);
     await refresh();
-    if (success) toast(success);
-    return true;
+    return result;
   } catch (error) {
-    toast(error.message, true);
-    return false;
+    showError(error.message);
+    return null;
   } finally {
     busy = false;
     document.body.removeAttribute("aria-busy");
-    document.querySelectorAll('button[type="submit"]').forEach((el) => {
-      el.disabled = false;
-      el.textContent = el.dataset.label || "Send ↗";
-    });
+    document
+      .querySelectorAll(
+        'button[type="submit"], [data-step], [data-choice], [data-resume], [data-remove-schedule], #confirm-reset',
+      )
+      .forEach((button) => {
+        button.disabled = false;
+      });
   }
 }
-function switchView(next) {
-  view = next;
-  document.querySelectorAll(".view").forEach((el) => {
+function route() {
+  const requested = location.hash.slice(1);
+  view = Object.hasOwn(pages, requested) ? requested : "requirements";
+  for (const el of document.querySelectorAll(".view"))
     el.hidden = el.id !== `view-${view}`;
-  });
-  document.querySelectorAll("[data-view]").forEach((el) => {
-    el.classList.toggle("active", el.dataset.view === view);
-    el.setAttribute(
-      "aria-current",
-      el.dataset.view === view ? "page" : "false",
-    );
-  });
-  $("#page-title").textContent = titles[view][0];
-  $("#page-subtitle").textContent = titles[view][1];
-  $("#owner-assistant").hidden = view === "customer";
+  for (const link of document.querySelectorAll("#main-nav .nav-link")) {
+    const active = link.hash === `#${view}`;
+    link.classList.toggle("active", active);
+    if (active) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  }
+  const [title, description, reference] = pages[view];
+  $("#page-title").textContent = title;
+  $("#page-description").textContent = description;
+  $("#page-reference").textContent = reference;
+  if (state) document.title = `${title} | ${state.business.name}`;
+  bootstrap.Offcanvas.getInstance($("#navigation"))?.hide();
+  if (conversation) renderConversation();
 }
-function renderMessages(selector, messages, perspective, forceScroll = false) {
+function renderMessages(selector, messages, perspective, force = false) {
   const el = $(selector),
-    nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 65;
+    bottom = el.scrollHeight - el.scrollTop - el.clientHeight < 70;
+  const customerName = conversation?.customer.name || "Customer";
   const content = messages.length
     ? messages
         .map((m) => {
+          const label =
+            m.role === "assistant"
+              ? "Assistant"
+              : m.role === "owner"
+                ? "Owner"
+                : customerName;
           const outgoing =
             perspective === "customer"
               ? m.role === "customer"
               : m.role === "owner";
-          const label =
-            m.role === "assistant"
-              ? m.kind === "report"
-                ? "Scheduled report"
-                : "Front desk"
-              : m.role === "owner"
-                ? "Owner"
-                : "Customer";
-          const kind =
-            m.kind !== "chat" && m.kind !== "report"
-              ? ` · ${m.kind.replaceAll("_", " ")}`
-              : "";
-          return `<article class="message ${outgoing ? "outgoing" : ""} ${m.kind !== "chat" ? "automated" : ""}"><div class="message-meta"><span>${esc(label + kind)}</span><time datetime="${esc(m.at)}">${esc(formatDate(m.at))}</time></div><div class="bubble">${esc(m.body)}</div></article>`;
+          return `<article class="message ${outgoing ? "outgoing" : ""}"><div class="message-meta"><span class="message-author">${esc(label)}</span><time datetime="${esc(m.at)}">${esc(date(m.at))}</time></div><div class="message-body">${esc(m.body)}</div>${m.kind !== "chat" ? `<div class="message-kind">${esc(kinds[m.kind] || m.kind)}</div>` : ""}</article>`;
         })
         .join("")
-    : `<div class="empty-state"><strong>${perspective === "assistant" ? "Your desk is ready." : "A fresh conversation."}</strong>${perspective === "assistant" ? "Give an instruction or move the demo clock to 8 am for your morning rundown." : "Send a message to get started. Your front desk will take it from here."}</div>`;
+    : empty("No messages. Send a message to start this conversation.");
   if (el.innerHTML !== content) {
     el.innerHTML = content;
-    if (nearBottom || forceScroll) el.scrollTop = el.scrollHeight;
-  }
+    if (bottom || force) el.scrollTop = el.scrollHeight;
+  } else if (force) el.scrollTop = el.scrollHeight;
 }
 function renderState() {
-  $("#brand-name").innerHTML =
-    `${esc(state.business.name)}<small>YOUR FRONT DESK, HANDLED.</small>`;
-  document.title = `${state.business.name} | Front desk`;
-  $("#mode").textContent = state.mode;
-  $("#footer-mode").textContent = state.model
-    ? `AI: ${state.model}`
-    : "Guided demo: sample conversations are ready to try.";
-  $("#timezone").textContent = state.timezone;
-  $("#clock").textContent = formatDate(state.now, {
+  $("#brand-name").textContent = state.business.name;
+  $("#mode").textContent = state.model
+    ? `${state.mode} configured`
+    : state.mode;
+  $("#mode").classList.toggle("connected", Boolean(state.model));
+  $("#clock").textContent = date(state.now, {
     weekday: "short",
     year: "numeric",
   });
+  $("#clock").dateTime = state.now;
+  $("#timezone").textContent = state.timezone;
+  document.title = `${pages[view][0]} | ${state.business.name}`;
   const handoffs = state.customers.filter((c) => c.handoff).length;
-  const today = state.visits.filter(
-    (v) => v.start.slice(0, 10) === state.now.slice(0, 10),
-  ).length;
-  const owed = state.quotes.filter((q) => q.status === "owed").length;
-  const sent = state.quotes.filter((q) => q.status === "sent").length;
-  $("#handoff-count").textContent = handoffs;
-  const stats = [
-    ["Today’s visits", today, "Across your team", "▦"],
-    [
-      "Needs your attention",
-      handoffs,
-      handoffs ? "Ready for your reply" : "Conversations are covered",
-      "↗",
-    ],
-    ["Quotes to send", owed, "Customers waiting on you", "▤"],
-    ["Quotes sent", sent, "Follow-ups handled automatically", "◷"],
-  ];
-  $("#stats").innerHTML = stats
-    .map(
-      ([label, value, hint, icon], i) =>
-        `<div class="stat ${i === 1 && handoffs ? "attention" : ""}"><div><span class="stat-label">${label}</span><strong class="stat-value">${value}</strong><p class="stat-hint">${hint}</p></div><span class="stat-icon" aria-hidden="true">${icon}</span></div>`,
-    )
-    .join("");
+  $("#handoff-count").textContent = handoffs || "";
+  $("#seed-summary").textContent =
+    `${state.customers.length} customers · ${state.technicians.length} technicians · ${state.visits.length} appointments · ${state.quotes.length} quotes`;
   $("#customer-total").textContent = state.customers.length;
-  $("#customer-list").innerHTML = state.customers
-    .map(
-      (c) =>
-        `<button class="customer-row ${c.id === selected ? "active" : ""}" data-customer="${c.id}" aria-pressed="${c.id === selected}"><span class="avatar ${c.handoff ? "amber" : ""}">${esc(initials(c.name))}</span><span class="customer-row-text"><span class="customer-row-name">${esc(c.name)}</span><span class="customer-preview">${esc(c.last_message || "Start a new conversation")}</span><span class="customer-state ${c.handoff ? "needs-owner" : ""}">${c.handoff ? "● Needs your reply" : "Assistant active"}</span></span></button>`,
-    )
-    .join("");
-  const select = $("#customer-select");
-  const options = state.customers
-    .map(
-      (c) =>
-        `<option value="${c.id}" ${selected === c.id ? "selected" : ""}>${esc(c.name)}</option>`,
-    )
-    .join("");
-  if (select.innerHTML !== options) select.innerHTML = options;
-  const visits = state.visits
-    .filter((v) => v.start >= state.now.slice(0, 10))
-    .slice(0, 60);
-  $("#visits").innerHTML = visits.length
-    ? `<table><thead><tr><th>WHEN</th><th>CUSTOMER / JOB</th><th>TECHNICIAN</th></tr></thead><tbody>${visits.map((v) => `<tr class="${v.start < state.now ? "past" : ""}"><td>${esc(formatDate(v.start))}<small>${v.duration_minutes} min</small></td><td>${esc(v.customer_name)}<small>${esc(v.issue)}</small><small>${esc(v.address)}${v.gate ? ` · Gate ${esc(v.gate)}` : ""}</small></td><td>${esc(v.technician)}</td></tr>`).join("")}</tbody></table>`
-    : '<div class="empty-state">No upcoming visits.</div>';
-  $("#team-count").textContent = `${state.technicians.length} TECHNICIANS`;
-  $("#team").innerHTML = state.technicians
-    .map(
-      (t) =>
-        `<div class="team-row"><span class="avatar">${esc(initials(t.name))}</span><strong>${esc(t.name)}</strong><span>${state.visits.filter((v) => v.tech === t.id && v.start.slice(0, 10) === state.now.slice(0, 10)).length} visits today</span></div>`,
-    )
-    .join("");
-  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  $("#business-details").innerHTML =
-    `<strong>${state.business.opening_hour}:00 to ${state.business.closing_hour}:00 · ${state.business.visit_minutes} min visits</strong><p>${state.business.open_weekdays.map((i) => days[i]).join(" · ") || "Closed for new bookings"}</p><p>${state.business.services.map(esc).join(" · ")}</p>${Object.entries(
-      state.business.facts,
-    )
+  html(
+    "#customer-list",
+    state.customers
       .map(
-        ([k, v]) =>
-          `<p><strong>${esc(k.replaceAll("_", " "))}:</strong> ${esc(v)}</p>`,
+        (c) =>
+          `<button class="customer-row ${c.id === selected ? "active" : ""}" data-customer="${c.id}" aria-pressed="${c.id === selected}"><span class="customer-row-name">${esc(c.name)}</span><span class="customer-preview">${esc(c.last_message || "No messages")}</span><span class="customer-state ${c.handoff ? "needs-owner" : ""}">${c.handoff ? "Owner reply required" : "Automatic replies active"}</span></button>`,
       )
-      .join("")}`;
-  $("#quotes").innerHTML =
-    state.quotes
+      .join(""),
+  );
+  html(
+    "#customer-select",
+    state.customers
       .map(
-        (q) =>
-          `<div class="quote-row"><div><h3>${esc(q.customer_name)}</h3><p>${esc(q.job)}</p><p>${q.status === "owed" ? "The shop owes this estimate." : q.status === "sent" ? "Waiting for the customer." : "Resolved"}</p></div><select data-quote="${q.id}" aria-label="Quote status for ${esc(q.customer_name)}">${[
-            ["owed", "Owed"],
-            ["sent", "Sent"],
-            ["accepted", "Accepted"],
-            ["declined", "Declined"],
-          ]
-            .map(
-              ([v, label]) =>
-                `<option value="${v}" ${q.status === v ? "selected" : ""}>${label}</option>`,
-            )
-            .join("")}</select></div>`,
+        (c) =>
+          `<option value="${c.id}" ${c.id === selected ? "selected" : ""}>${esc(c.name)}</option>`,
       )
-      .join("") || '<p class="muted">No quotes yet.</p>';
-  $("#schedules").innerHTML =
-    state.schedules
-      .map(
-        (s) =>
-          `<div class="schedule-row"><div><h3>${esc(s.label)}</h3><p>${esc(s.cadence)} at ${String(s.hour).padStart(2, "0")}:${String(s.minute).padStart(2, "0")}</p><small>Next: ${esc(formatDate(s.next_run))}</small></div><button class="text-button" data-remove-schedule="${s.id}" aria-label="Remove ${esc(s.label)} schedule">Remove</button></div>`,
-      )
-      .join("") ||
-    '<p class="muted">Ask the owner assistant to schedule a report.</p>';
-  $("#events").innerHTML =
-    state.events
-      .map(
-        (e) =>
-          `<div class="event-row"><time datetime="${esc(e.at)}">${esc(formatDate(e.at))}</time><div><strong>${esc(e.action)}</strong><p>${esc(e.reason)}</p>${e.source_body ? `<div class="event-source">Trigger: “${esc(e.source_body)}”</div>` : ""}</div></div>`,
-      )
-      .join("") ||
-    '<p class="muted">Bookings, rule changes, handoffs and deliveries will appear here.</p>';
-  renderMessages("#owner-messages", state.owner_messages, "assistant");
-}
-function detailHTML(ctx) {
-  const c = ctx.customer;
-  const future = ctx.visits.filter((v) => v.start >= state.now).slice(0, 3);
-  const previous = ctx.visits.filter((v) => v.start < state.now).slice(-1);
-  return `<div class="detail-row"><span class="detail-label">NAME</span><div class="detail-value"><strong>${esc(c.name)}</strong></div></div><div class="detail-row"><span class="detail-label">SERVICE ADDRESS</span><div class="detail-value">${esc(c.address || "Not provided yet")}</div></div><div class="detail-row"><span class="detail-label">GATE / ACCESS</span><div class="detail-value">${esc(c.gate || "No gate code on file")}</div></div>${c.issue ? `<div class="detail-row"><span class="detail-label">CURRENT REQUEST</span><div class="detail-value">${esc(c.issue)}</div></div>` : ""}<hr class="detail-divider"><div class="detail-row"><span class="detail-label">UPCOMING VISITS</span>${future.map((v) => `<div class="detail-visit">${esc(formatDate(v.start))}<span>${esc(v.technician)} · ${esc(v.issue)}</span></div>`).join("") || '<div class="detail-value muted">Nothing scheduled yet.</div>'}</div>${previous.map((v) => `<div class="detail-row"><span class="detail-label">PREVIOUS VISIT</span><div class="detail-value">${esc(v.issue)}<span class="muted"><br>${esc(formatDate(v.start))}</span></div></div>`).join("")}`;
-}
-function renderConversation(ctx) {
-  const c = ctx.customer,
-    changed = renderedCustomer !== selected;
-  $("#thread-name").textContent = c.name;
-  $("#thread-address").textContent = c.address || "Address not provided yet";
-  $("#thread-state").innerHTML =
-    `<span class="status-pill ${c.handoff ? "amber" : ""}">${c.handoff ? "Waiting for owner" : "Assistant active"}</span>`;
-  $("#handoff-banner").hidden = !c.handoff;
-  $("#handoff-banner").innerHTML = c.handoff
-    ? `<strong>Needs your judgment</strong><br>${esc(c.handoff)}<br><button data-resume="${c.id}">Resume assistant</button>`
-    : "";
-  $("#customer-paused").hidden = !c.handoff;
-  renderMessages("#owner-thread", ctx.messages, "owner", changed);
-  renderMessages("#customer-thread", ctx.messages, "customer", changed);
-  $("#customer-details").innerHTML = detailHTML(ctx);
-  $("#sim-details").innerHTML = detailHTML(ctx);
-  $("#slot-options").innerHTML = !c.handoff
-    ? c.offers
+      .join(""),
+  );
+  const tech = $("#visit-tech").value;
+  html(
+    "#visit-tech",
+    '<option value="all">All technicians</option>' +
+      state.technicians
         .map(
-          (s, i) =>
-            `<button data-choice="${i + 1}">${i + 1}. ${esc(formatDate(s))} ↗</button>`,
+          (t) =>
+            `<option value="${t.id}" ${String(t.id) === tech ? "selected" : ""}>${esc(t.name)}</option>`,
         )
-        .join("")
-    : "";
+        .join(""),
+  );
+  renderVisits();
+  renderQuotes();
+  renderRules();
+  renderAutomation();
+  renderActivity();
+  const roleName = (role) =>
+    role === "owner" ? "Owner instruction" : "Assistant response";
+  html(
+    "#owner-messages",
+    [...state.owner_messages]
+      .reverse()
+      .filter((m) => m.kind !== "report")
+      .slice(0, 30)
+      .map(
+        (m) =>
+          `<article class="instruction-record"><header><strong>${roleName(m.role)}</strong><time>${esc(date(m.at))}</time></header><p>${esc(m.body)}</p></article>`,
+      )
+      .join("") || empty("No owner instructions recorded."),
+  );
+  html(
+    "#app-configuration",
+    [
+      ["Business", state.business.name],
+      ["Timezone", state.timezone],
+      ["AI mode", state.mode],
+      ["Provider", state.provider],
+      ["Configured model", state.configured_model],
+      ["Messaging / calendar", "Simulated locally"],
+      ["Application", "FastAPI"],
+      ["Persistent storage", "SQLite"],
+      ["Configuration file", "desk/business.json"],
+      ["Provider configuration", ".env"],
+    ]
+      .map(([label, value]) => `<dt>${esc(label)}</dt><dd>${esc(value)}</dd>`)
+      .join(""),
+  );
+}
+function renderVisits() {
+  const range = $("#visit-range").value,
+    tech = $("#visit-tech").value;
+  const visits = state.visits.filter(
+    (v) =>
+      (range === "all" ||
+        (range === "today"
+          ? v.start.slice(0, 10) === state.now.slice(0, 10)
+          : new Date(v.start) >= new Date(state.now))) &&
+      (tech === "all" || v.tech === Number(tech)),
+  );
+  html(
+    "#visits",
+    visits.length
+      ? `<table class="table align-middle"><thead><tr><th>Visit</th><th>Customer / service</th><th>Technician</th><th>Address</th><th>Gate / access</th></tr></thead><tbody>${visits.map((v) => `<tr><td>${esc(date(v.start))}<small>${v.duration_minutes} minutes${new Date(v.start) < new Date(state.now) ? " · Past" : ""}</small></td><td>${esc(v.customer_name)}<small>${esc(v.issue)}</small></td><td>${esc(v.technician)}</td><td>${esc(v.address)}</td><td>${esc(v.gate || "Not provided")}</td></tr>`).join("")}</tbody></table>`
+      : empty("No appointments match these filters."),
+  );
+  $("#team-count").textContent = `${state.technicians.length} technicians`;
+  html(
+    "#team",
+    `<table class="table"><thead><tr><th>Name</th><th>Visits today</th><th>Upcoming visits</th></tr></thead><tbody>${state.technicians.map((t) => `<tr><td>${esc(t.name)}</td><td>${state.visits.filter((v) => v.tech === t.id && v.start.slice(0, 10) === state.now.slice(0, 10)).length}</td><td>${state.visits.filter((v) => v.tech === t.id && new Date(v.start) >= new Date(state.now)).length}</td></tr>`).join("")}</tbody></table>`,
+  );
+}
+function renderQuotes() {
+  const filter = $("#quote-filter").value;
+  const quotes = state.quotes.filter(
+    (q) => filter === "all" || q.status === filter,
+  );
+  html(
+    "#quotes",
+    quotes.length
+      ? `<table class="table align-middle"><thead><tr><th>Customer</th><th>Estimate / work</th><th>Last updated</th><th>Status</th><th>Next action</th></tr></thead><tbody>${quotes.map((q) => `<tr><td>${esc(q.customer_name)}</td><td>${esc(q.job)}</td><td>${esc(date(q.updated))}</td><td><select class="form-select form-select-sm" data-quote="${q.id}" aria-label="Quote status for ${esc(q.customer_name)}">${["owed", "sent", "accepted", "declined"].map((status) => `<option value="${status}" ${status === q.status ? "selected" : ""}>${status[0].toUpperCase() + status.slice(1)}</option>`).join("")}</select></td><td>${q.status === "owed" ? "Business needs to send estimate" : q.status === "sent" ? "Await customer; follow-up after 3 quiet days" : "No follow-up scheduled"}</td></tr>`).join("")}</tbody></table>`
+      : empty("No quotes match this status."),
+  );
+}
+function renderRules() {
+  const b = state.business,
+    days = [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday",
+    ];
+  html(
+    "#business-details",
+    `<dl class="business-rule-list"><dt>Opening days</dt><dd>${b.open_weekdays.map((i) => days[i]).join(", ") || "Closed for new bookings"}</dd><dt>Hours</dt><dd>${String(b.opening_hour).padStart(2, "0")}:00 to ${String(b.closing_hour).padStart(2, "0")}:00 (${esc(b.timezone)})</dd><dt>Standard visit length</dt><dd>${b.visit_minutes} minutes</dd><dt>Services</dt><dd>${b.services.map(esc).join(", ")}</dd>${Object.entries(
+      b.facts,
+    )
+      .map(
+        ([k, v]) => `<dt>${esc(k.replaceAll("_", " "))}</dt><dd>${esc(v)}</dd>`,
+      )
+      .join(
+        "",
+      )}</dl><p class="section-note">Opening-day changes affect new bookings. Existing appointments remain scheduled. Services, hours and visit length are set in business configuration.</p>`,
+  );
+}
+function renderAutomation() {
+  html(
+    "#schedules",
+    state.schedules.length
+      ? `<table class="table align-middle"><thead><tr><th>Report</th><th>Schedule</th><th>Next delivery</th><th><span class="visually-hidden">Actions</span></th></tr></thead><tbody>${state.schedules.map((s) => `<tr><td>${esc(s.label)}</td><td>${esc(s.cadence)}, ${String(s.hour).padStart(2, "0")}:${String(s.minute).padStart(2, "0")}</td><td>${esc(date(s.next_run))}</td><td><button class="btn btn-sm btn-outline-secondary" data-remove-schedule="${s.id}" aria-label="Remove ${esc(s.label)} schedule">Remove</button></td></tr>`).join("")}</tbody></table>`
+      : empty("No report schedules. Add one below."),
+  );
+  const reports = state.owner_messages
+    .filter((m) => m.kind === "report")
+    .reverse();
+  html(
+    "#reports",
+    reports
+      .map(
+        (m) =>
+          `<article class="report-entry"><h3>${m.body.startsWith("Morning rundown") ? "Morning rundown" : m.body.startsWith("Waiting") ? "Quotes owed" : "Open handoffs"}<time>${esc(date(m.at))}</time></h3><p>${esc(m.body)}</p></article>`,
+      )
+      .join("") ||
+      empty(
+        "No reports delivered yet. Advance the demo clock to 8 am or request a report above.",
+      ),
+  );
+  const filter = $("#delivery-filter").value,
+    deliveries = state.deliveries.filter(
+      (m) => filter === "all" || m.kind === filter,
+    );
+  html(
+    "#deliveries",
+    deliveries.length
+      ? `<table class="table"><thead><tr><th>Delivered</th><th>Recipient</th><th>Type</th><th>Message</th></tr></thead><tbody>${deliveries.map((m) => `<tr><td>${esc(date(m.at))}</td><td>${esc(m.customer_name || "Owner")}</td><td>${esc(kinds[m.kind] || m.kind)}</td><td class="message-cell">${esc(m.body)}</td></tr>`).join("")}</tbody></table>`
+      : empty(
+          "No matching deliveries. Advance the demo clock to run scheduled work.",
+        ),
+  );
+}
+function renderActivity() {
+  const query = $("#activity-search").value.toLowerCase().trim();
+  const events = state.events.filter((e) =>
+    `${e.action} ${e.reason} ${e.source_body || ""}`
+      .toLowerCase()
+      .includes(query),
+  );
+  html(
+    "#events",
+    events.length
+      ? `<table class="table"><thead><tr><th>Time</th><th>Action</th><th>Reason</th><th>Source message</th></tr></thead><tbody>${events.map((e) => `<tr><td>${esc(date(e.at))}</td><td>${esc(e.action)}</td><td>${esc(e.reason)}</td><td class="message-cell">${esc(e.source_body || "Owner control or scheduled process")}</td></tr>`).join("")}</tbody></table>`
+      : empty(
+          query
+            ? "No matching actions."
+            : "No actions recorded. Book a visit, change a rule or advance the demo clock.",
+        ),
+  );
+}
+function details(ctx) {
+  const c = ctx.customer;
+  const future = ctx.visits.filter(
+    (v) => new Date(v.start) >= new Date(state.now),
+  );
+  const past = ctx.visits.filter(
+    (v) => new Date(v.start) < new Date(state.now),
+  );
+  const record = (v) =>
+    `<div class="record-visit">${esc(date(v.start))}<small>${esc(v.issue)}</small><small>Technician: ${esc(v.technician)}</small></div>`;
+  return `<dl class="record-list"><dt>Name</dt><dd>${esc(c.name)}</dd><dt>Service address</dt><dd>${esc(c.address || "Not provided")}</dd><dt>Gate / access code</dt><dd>${esc(c.gate || "Not provided")}</dd>${c.issue ? `<dt>Current request</dt><dd>${esc(c.issue)}</dd>` : ""}</dl><h3 class="record-subheading">Upcoming visits</h3>${future.map(record).join("") || '<p class="secondary-text">No upcoming visits.</p>'}<h3 class="record-subheading">Visit history</h3>${past.slice(-3).reverse().map(record).join("") || '<p class="secondary-text">No previous visits.</p>'}`;
+}
+function renderConversation() {
+  const c = conversation.customer,
+    changed = selected !== renderedCustomer;
+  $("#thread-name").textContent = c.name;
+  $("#thread-address").textContent = c.address || "Address not provided";
+  $("#customer-status").textContent = c.handoff
+    ? "Owner reply required"
+    : "Automatic replies active";
+  html(
+    "#thread-state",
+    `<span class="status-text ${c.handoff ? "waiting" : ""}">${c.handoff ? "Owner reply required" : "Assistant active"}</span>`,
+  );
+  $("#handoff-banner").hidden = !c.handoff;
+  html(
+    "#handoff-banner",
+    c.handoff
+      ? `<strong>Handoff summary</strong><p class="handoff-summary">${esc(c.handoff)}</p><p>Automatic replies are paused.</p><button class="btn btn-sm btn-outline-secondary" data-resume="${c.id}">Resume assistant</button>`
+      : "",
+  );
+  $("#customer-paused").hidden = !c.handoff;
+  renderMessages(
+    "#customer-thread",
+    conversation.messages,
+    "customer",
+    changed,
+  );
+  renderMessages("#owner-thread", conversation.messages, "owner", changed);
+  html("#sim-details", details(conversation));
+  html("#customer-details", details(conversation));
+  html(
+    "#slot-options",
+    !c.handoff && c.offers.length
+      ? "<h3>Select an available appointment</h3>" +
+          c.offers
+            .map(
+              (s, i) =>
+                `<button class="btn btn-outline-primary" data-choice="${i + 1}">${esc(date(s, { weekday: "short" }))}</button>`,
+            )
+            .join("")
+      : "",
+  );
   renderedCustomer = selected;
 }
-$("#customer-examples").innerHTML = sampleCustomers
-  .map(
-    ([label, text]) =>
-      `<button data-sample-customer="${esc(text)}">${esc(label)}</button>`,
-  )
-  .join("");
-$("#owner-examples").innerHTML = sampleOwners
-  .map(
-    (text) =>
-      `<button data-sample-owner="${esc(text)}">${esc(text)} ↗</button>`,
-  )
-  .join("");
-document.addEventListener("click", async (e) => {
-  const b = e.target.closest("button");
+html(
+  "#customer-examples",
+  customerExamples
+    .map(
+      ([label, text]) =>
+        `<button class="btn btn-sm btn-outline-secondary" data-fill-target="customer-text" data-example="${esc(text)}">${esc(label)}</button>`,
+    )
+    .join(""),
+);
+window.addEventListener("hashchange", route);
+document.addEventListener("click", async (event) => {
+  const b = event.target.closest("button");
   if (!b) return;
-  if (b.dataset.view) switchView(b.dataset.view);
+  if (b.dataset.fillTarget) {
+    $("#" + b.dataset.fillTarget).value = b.dataset.example;
+    $("#" + b.dataset.fillTarget).focus();
+  }
   if (b.dataset.customer) {
     selected = Number(b.dataset.customer);
-    await refresh().catch((err) => toast(err.message, true));
+    await refresh().catch((e) => showError(e.message));
   }
-  if (b.dataset.step)
-    await mutate(
-      "/api/clock/advance",
-      { step: b.dataset.step },
-      "Demo clock advanced. Due work has run.",
-    );
+  if (b.dataset.step) {
+    if (await mutate("/api/clock/advance", { step: b.dataset.step }))
+      notify("Demo clock advanced. Due work has run.");
+  }
   if (b.dataset.choice)
     await mutate(`/api/customers/${selected}/messages`, {
       text: b.dataset.choice,
     });
-  if (b.dataset.sampleCustomer)
-    await mutate(`/api/customers/${selected}/messages`, {
-      text: b.dataset.sampleCustomer,
-    });
-  if (b.dataset.sampleOwner)
-    await mutate("/api/owner/messages", { text: b.dataset.sampleOwner });
-  if (b.dataset.resume)
-    await mutate(
-      `/api/customers/${b.dataset.resume}/resume`,
-      {},
-      "Assistant resumed.",
-    );
-  if (b.dataset.removeSchedule)
-    await mutate(
-      `/api/schedules/${b.dataset.removeSchedule}`,
-      {},
-      "Report schedule removed.",
-      "DELETE",
-    );
+  if (b.dataset.resume) {
+    if (await mutate(`/api/customers/${b.dataset.resume}/resume`, {}))
+      notify("Automatic replies resumed.");
+  }
+  if (b.dataset.removeSchedule) {
+    if (
+      await mutate(`/api/schedules/${b.dataset.removeSchedule}`, {}, "DELETE")
+    )
+      notify("Report schedule removed.");
+  }
 });
-$("#customer-select").addEventListener("change", async (e) => {
-  selected = Number(e.target.value);
-  await refresh().catch((err) => toast(err.message, true));
+$("#customer-select").addEventListener("change", async (event) => {
+  selected = Number(event.target.value);
+  await refresh().catch((e) => showError(e.message));
 });
-$("#quotes").addEventListener("change", async (e) => {
-  if (!e.target.dataset.quote) return;
-  await mutate(
-    `/api/quotes/${e.target.dataset.quote}`,
-    { status: e.target.value },
-    "Quote updated.",
-    "PATCH",
-  );
+$("#quotes").addEventListener("change", async (event) => {
+  if (
+    event.target.dataset.quote &&
+    (await mutate(
+      `/api/quotes/${event.target.dataset.quote}`,
+      { status: event.target.value },
+      "PATCH",
+    ))
+  )
+    notify("Quote status updated.");
 });
-for (const [form, input, route] of [
+for (const [formId, inputId, routeFn, resultId] of [
   [
-    "#customer-form",
-    "#customer-text",
+    "customer-form",
+    "customer-text",
     () => `/api/customers/${selected}/messages`,
+    null,
   ],
-  ["#owner-form", "#owner-text", () => "/api/owner/messages"],
-  ["#reply-form", "#reply-text", () => `/api/customers/${selected}/reply`],
+  ["reply-form", "reply-text", () => `/api/customers/${selected}/reply`, null],
+  ["rule-form", "rule-text", () => "/api/owner/messages", "rule-result"],
+  [
+    "schedule-form",
+    "schedule-text",
+    () => "/api/owner/messages",
+    "schedule-result",
+  ],
 ]) {
-  $(form).addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const text = $(input).value.trim();
-    if (!text) return;
+  const form = $("#" + formId),
+    input = $("#" + inputId);
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const text = input.value.trim();
+    if (!text || busy) return;
     const body = { text };
-    if (form === "#reply-form") body.resume = $("#reply-resume").checked;
-    if (await mutate(route(), body)) {
-      $(input).value = "";
-      if (form === "#reply-form") $("#reply-resume").checked = false;
+    if (formId === "reply-form") body.resume = $("#reply-resume").checked;
+    const submit = form.querySelector('[type="submit"]'),
+      label = submit.textContent;
+    submit.textContent = "Sending…";
+    const result = await mutate(routeFn(), body);
+    submit.textContent = label;
+    if (result) {
+      input.value = "";
+      if (formId === "reply-form") $("#reply-resume").checked = false;
+      if (resultId) {
+        $("#" + resultId).hidden = false;
+        $("#" + resultId).textContent = result.reply;
+      }
+      if (result.status === "waiting_for_owner")
+        notify("Message saved. The owner is handling this conversation.");
     }
   });
-  $(input).addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      $(form).requestSubmit();
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      form.requestSubmit();
     }
   });
 }
-$("#go-owner").addEventListener("click", () => {
-  $("#owner-assistant").scrollIntoView({ behavior: "smooth" });
-  $("#owner-text").focus({ preventScroll: true });
+for (const id of ["visit-range", "visit-tech"])
+  $("#" + id).addEventListener("change", renderVisits);
+$("#quote-filter").addEventListener("change", renderQuotes);
+$("#delivery-filter").addEventListener("change", renderAutomation);
+$("#activity-search").addEventListener("input", renderActivity);
+$("#confirm-reset").addEventListener("click", async () => {
+  if (busy) return;
+  const result = await mutate("/api/demo/reset", {});
+  if (result) {
+    selected = 1;
+    renderedCustomer = null;
+    await refresh();
+    resetModal.hide();
+    notify("Demo data and clock restored.");
+  }
 });
-$("#reset").addEventListener("click", async () => {
-  if (
-    busy ||
-    !confirm(
-      "Reset conversations, bookings, rules, and reports to the starting demo?",
-    )
-  )
-    return;
-  selected = 1;
-  renderedCustomer = null;
-  await mutate(
-    "/api/demo/reset",
-    {},
-    "Demo restored to Thursday, November 19 at 7:45 am.",
-  );
-});
-refresh().catch((err) => toast(err.message, true));
+route();
+refresh().catch((error) => showError(error.message, "refresh"));
 setInterval(() => {
   if (!busy && !document.hidden)
-    refresh().catch((err) => toast(err.message, true));
+    refresh().catch((error) => showError(error.message, "refresh"));
 }, 5000);

@@ -9,12 +9,17 @@ REPORT_NAMES = {"waiting_quotes": "Quotes owed", "rundown": "Morning rundown", "
 
 
 class Decision(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(
+        extra="forbid",
+        # Require every wire field so providers cannot silently omit action inputs.
+        # Python defaults remain available to the guided demo fixtures.
+        json_schema_extra=lambda schema: schema.update(required=list(schema["properties"])),
+    )
 
 
 class CustomerTurn(Decision):
     action: Literal["reply", "offer", "book", "quote", "handoff"]
-    body: str = Field(default="", max_length=800)
+    body: str = Field(default="", max_length=800, description="Customer reply for reply actions; factual owner summary and decision needed for handoff actions.")
     name: str = Field(default="", max_length=120)
     address: str = Field(default="", max_length=240)
     gate: str = Field(default="", max_length=80)
@@ -26,7 +31,7 @@ class CustomerTurn(Decision):
 class OwnerTurn(Decision):
     action: Literal["hours", "fact", "schedule", "report", "reply"]
     body: str = Field(default="", max_length=800)
-    weekday: int | None = Field(default=None, ge=-1, le=6)
+    weekday: int | None = Field(default=None, ge=-1, le=6, description="Required for schedule and hours: Monday=0, Tuesday=1, Wednesday=2, Thursday=3, Friday=4, Saturday=5, Sunday=6; daily=-1 for schedules.")
     opened: bool | None = None
     key: str = Field(default="", max_length=100)
     report: Literal["waiting_quotes", "rundown", "handoffs"] | None = None
@@ -44,14 +49,17 @@ Select book ONLY when the customer explicitly selects one of the customer's curr
 (1-based). The application checks availability and renders the confirmation. Do not claim to have booked,
 sent, saved, quoted, changed rules or escalated anything in reply text. Only actions perform these operations.
 For estimate requests use quote with issue. For unlisted prices, policy exceptions, emergencies, unsupported
-services, complaints, or requests for a human use handoff with a short factual summary of the issue and the
-judgment needed. Reply to factual questions using saved information, including prior visits. If an answer is
+services, complaints, or requests for a human use handoff. Put a short factual summary and the judgment
+needed in body. Reply to factual questions using saved information, including prior visits. If an answer is
 not in the records, hand off. Never promise a specific price or arrival outside the application workflow."""
 OWNER_PROMPT = """Interpret the owner's request using one structured decision.
 hours opens/closes one weekday (Monday=0). fact saves a business fact with a stable key, reusing existing keys.
 Services, visit duration, timezone and opening/closing times are configuration settings; for changes to those
 explain that the business.json configuration needs updating. Do not save contradictory facts for those fields.
-schedule supports daily (-1) or one weekday reports at a local hour and minute (default 08:00).
+schedule requires report and weekday. Set weekday=-1 for daily, or Monday=0 through Sunday=6.
+Set hour and minute to the requested local time, default 08:00.
+Example: 'Every Friday, tell me who is still waiting on a quote' returns
+{"action":"schedule","report":"waiting_quotes","weekday":4,"hour":8,"minute":0}.
 Supported reports: waiting_quotes = customers the shop still OWES an estimate (not quotes already sent);
 rundown = today's visits, quotes owed and open handoffs; handoffs = conversations needing the owner.
 report runs a supported report now. If a recurrence cannot be represented by one weekday and hour/minute,

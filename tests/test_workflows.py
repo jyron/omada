@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from desk.api import app, tick
 from desk.frontdesk import chat, technician
 from desk.llm import AIError
+from desk.intents import CustomerTurn
 from desk.store import database, initialize, now, put, rows, setting
 
 
@@ -86,8 +87,12 @@ def test_competing_bookings_and_overlapping_visits(client):
         assert technician(db, at, 4, at.replace(hour=16,minute=0,second=0).isoformat()) is not None
 
 
-def test_handoff_pauses_until_owner_resumes(client):
-    send(client, 2, "I want to speak to the owner about a refund.")
+def test_handoff_pauses_until_owner_resumes(client, monkeypatch):
+    request = "I want to speak to the owner about a refund."
+    with monkeypatch.context() as patch:
+        patch.setattr("desk.frontdesk.decide", lambda *args, **kwargs: CustomerTurn(action="handoff"))
+        send(client, 2, request)
+    assert client.get("/api/customers/2/conversation").json()["customer"]["handoff"] == request
     before = client.get("/api/customers/2/conversation").json()["messages"]
     assert send(client, 2, "My kitchen faucet is leaking.")["reply"] is None
     client.post("/api/clock/advance", json={"step":"15_minutes"})

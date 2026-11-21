@@ -1,6 +1,6 @@
-# Northside Plumbing front desk
+# Business front desk
 
-A local FastAPI + SQLite app with customer chat, an owner inbox, booking, simulated messages, and recurring reports. Four technicians, returning customers, existing visits, and two different quote states are ready to explore.
+A local FastAPI + SQLite app with customer chat, an owner inbox, booking, simulated messages, and recurring reports. The Northside Plumbing demo seeds four technicians, returning customers, existing visits, and owed/sent quotes. Business name, services and hours are configurable.
 
 ## Start
 
@@ -12,7 +12,7 @@ docker compose up --build
 
 Open [http://localhost:8000](http://localhost:8000). SQLite is stored in the `front-desk-data` Docker volume and survives container restarts. The app runs as one server process. No frontend build step or hosted service is required.
 
-Without a key, **Guided demo** uses the exact sample messages shown in the interface. It also accepts `Name:`, `Address:`, `Gate:`, and `Remember key = value` inputs. This adapter is a small set of fixtures; The selected AI provider handles free-form language when configured.
+Without a key, **Guided demo** uses the exact sample messages shown in the interface. It also accepts `Name:`, `Address:`, `Gate:`, and `Remember key = value` inputs. This adapter is a small set of fixtures; the selected AI provider handles free-form language when configured.
 
 ## AI provider adapter
 
@@ -62,18 +62,35 @@ Other LiteLLM providers use their documented model prefix and credentials. Compo
 
 Both output modes validate the response with Pydantic before performing an action. Incomplete or malformed output and provider failures follow the existing owner-handoff path. There is no automatic switch to another provider. Without credentials, the default remains Guided demo. The model proposes actions; Python checks and commits them.
 
-## Five-minute walkthrough
+## Interface and requirement locations
+
+The app opens to **Requirements**, a linked index of every requested function. Navigation uses the same names as the workflows:
+
+| Page | Functions |
+| --- | --- |
+| Customer chat & booking | Customer identity, saved address/gate code, visit history, business questions, missing details, offered visits and confirmation |
+| Owner inbox | Handoff summary, paused replies, owner response and resume control |
+| Appointments | Scheduled visits, technician assignments, access details and all four seeded technicians |
+| Quotes | Owed/sent/accepted/declined records and status updates |
+| Business rules | Current services, hours and facts; plain-language owner instructions |
+| Automations & reports | Reminder and follow-up rules, report schedules, delivered reports and message delivery log |
+| Activity log | Actions, reasons and triggering messages |
+| Configuration | Active business/provider settings, startup and storage details, README and implementation note |
+
+The demo clock controls are visible on every page. Each workflow heading identifies its corresponding requirement number. Business identity comes from configuration.
+
+## Walkthrough
 
 The demo starts on **Thursday, November 19, 2026, at 7:45 am America/Chicago**. It advances with elapsed time, and the clock buttons jump forward. **Reset demo** restores the seeded records and clock.
 
-1. **Returning customer to confirmed visit.** Open **Customer chat** as Maya Reed. Click **Saved details** and **Last visit** to see her address, gate code `1402`, and prior faucet repair. Click **Leaking faucet**, then one of the offered visits. The confirmation names the technician and address. **Shop activity** shows the visit and its triggering message in **The paper trail**. The appointment includes the saved gate code.
-2. **Gather missing details.** Choose **New customer**, click **Leaking faucet**, then send `Name: Alex Morgan` and `Address: 55 Birch Road`. The desk asks for each missing detail before offering visits. Select a visit to book it. `Gate: 5522` saves an access code for subsequent visits.
-3. **Change a business rule.** In the owner assistant, click **We stopped doing Sunday calls**. New Sunday openings disappear. Existing Sunday appointments remain visible. To see the stale-offer check, start another **Leaking faucet** request and request Sunday availability before closing Sunday, then select that old offer after the rule changes. Python declines it and offers current availability. Send `We are open on Sundays again` to restore Sunday service.
-4. **Hand off and take control.** In customer chat, click **Talk to the owner**. The owner inbox displays the summary and a waiting status. Send another customer message; it is recorded without an automatic reply. Reply from the owner inbox. Check **Resume assistant after sending**, or click **Resume assistant** separately, to restore automation.
-5. **Watch the morning work.** Click **+15 min** from the starting clock. Sam receives a reminder for Friday’s appointment and a follow-up on his sent quote, which has been quiet for four days. The owner assistant receives the morning rundown. Shop activity records each delivery. Repeated refreshes and restarts do not send duplicates.
-6. **Schedule a report in plain language.** Click **Every Friday, tell me who is still waiting on a quote**, then **Friday, 8 am**. The delivered report lists Jo Ellis, whose estimate the shop owes. Sam’s already-sent quote is excluded. The schedule and its next run are visible under **On autopilot**. A second example schedules daily handoff reports at 9:30 am. Remove schedules using their **Remove** buttons.
-7. **Close the loop on quotes.** Under **Shop activity → Quotes**, change Jo’s quote from **Owed** to **Sent**. This adds a simulated quote message. Jo leaves the quotes-owed report and becomes eligible for a follow-up after three quiet days. **Accepted** and **Declined** stop follow-ups. Customer activity restarts the quiet period; open handoffs pause customer automation.
-8. **Save a fact.** Tell the owner assistant `Remember parking = Use the side lot`. In customer chat, send `parking` in Guided demo, or ask a natural-language parking question with AI enabled.
+1. **Customer history and booking.** Open **Customer chat & booking** as Maya Reed. Ask for the saved address, gate code and previous visit. Describe a leaking kitchen faucet, then select an offered appointment. The confirmation identifies the technician and address. **Appointments** shows the visit, saved gate code and technician. **Activity log** shows what triggered the booking.
+2. **Missing details.** Select **New customer** and describe a service request. Provide `Name: Alex Morgan` and `Address: 55 Birch Road` when asked. The desk gathers the details before offering visits. `Gate: 5522` saves an access code for subsequent visits. Expand **Example requests** to fill the message field with a sample, then click **Send message**.
+3. **Business rules.** Open **Business rules**. Enter `We stopped doing Sunday calls` and click **Apply instruction**. The opening-day list changes; existing Sunday appointments remain. To verify a stale offer, request Sunday availability before closing Sunday, then select the old offer after the change. Python declines it and offers current availability.
+4. **Owner handoff.** In customer chat, request the owner about a refund. **Owner inbox** shows the summary and paused status. Additional customer messages receive no automatic reply. Send an owner reply, optionally checking **Resume assistant after sending**, or use **Resume assistant** separately.
+5. **Reminders and follow-up.** From the starting clock, click **+15 minutes**. In **Automations & reports → Message delivery log**, Sam receives a Friday visit reminder and a follow-up on his four-day-old sent quote. **Delivered reports** shows the morning rundown. These messages also appear in the relevant customer conversations.
+6. **Report scheduling.** Under **Automations & reports**, enter `Every Friday, tell me who is still waiting on a quote` and click **Send instruction**. Inspect **Report schedules**, then click **Next Friday, 8 am**. **Delivered reports** lists Jo Ellis, whose estimate the business owes, and excludes Sam’s already-sent quote. A schedule can be removed with its **Remove** button.
+7. **Quote status.** In **Quotes**, change Jo’s quote from **Owed** to **Sent**. A simulated message is recorded in the delivery log. Jo leaves the quotes-owed report and becomes eligible for a follow-up after three quiet days. **Accepted** and **Declined** stop follow-ups. Customer activity restarts the quiet period; handoffs pause customer automation.
+8. **Saved business information.** In **Business rules**, enter `Remember parking = Use the side lot`. Ask about parking in customer chat. In Guided demo, send `parking` exactly.
 
 ## Business configuration
 
@@ -102,3 +119,13 @@ python3 -m venv .venv
 Run the focused workflow checks with `.venv/bin/python -m pytest -q`. They cover booking races, overlapping visits, changed rules, missing details, handoff/resume, late reminders, quote status and silence, report recurrence, persistence, delivery deduplication, and the provider-adapter validation/error boundary. They use temporary databases and no live AI calls.
 
 See [DESIGN.md](DESIGN.md) for the one-page implementation note and verification record.
+
+## Interface dependencies
+
+Bootstrap 5.3.9 provides forms, buttons, tables, mobile navigation, reset confirmation and notifications. Bootstrap Icons supplies navigation icons. IBM Plex Sans 5.3.0 is bundled through Fontsource in 400/500/600 weights. All assets and their licenses are served locally from `desk/static/vendor`; the running app needs no CDN or frontend build step.
+
+To update bundled assets after changing dependencies, run `npm ci && npm run vendor`. `npm run format` formats the three frontend source files. `package-lock.json` records the dependency versions.
+
+## Design references
+
+The redesign removes oversized promotional headings, repeated decorative cards, invented feature names, emoji decoration and marketing copy. It uses a persistent workflow menu, literal labels, standard controls, record tables and a requirements index. These changes address recurring patterns described in [925Studios’ design analysis](https://www.925studios.co/blog/ai-slop-design-tells) and [the OIM3690 design guide](https://oim3690.github.io/guides/ai-slop/). Navigation follows [Nielsen Norman Group’s menu guidance](https://www.nngroup.com/articles/menu-design/): visible desktop navigation, familiar placement and clear location labels.

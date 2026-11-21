@@ -3,266 +3,833 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Northside Plumbing | Front desk</title>
-    <link
-      rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%231c3d38'/%3E%3Cpath d='M12 28V12l16 16V12' stroke='%23eff7c8' stroke-width='4' fill='none'/%3E%3C/svg%3E"
-    />
+    <title>Business front desk</title>
+    <link rel="stylesheet" href="/static/vendor/bootstrap.min.css" />
     <link rel="stylesheet" href="/static/style.css" />
+    <script defer src="/static/vendor/bootstrap.bundle.min.js"></script>
     <script defer src="/static/app.js"></script>
   </head>
   <body>
-    <header class="topbar">
-      <a class="brand" href="/" aria-label="Northside Plumbing home"
-        ><span class="brandmark">N<span>↗</span></span
-        ><span id="brand-name"
-          >Northside Plumbing<small>YOUR FRONT DESK, HANDLED.</small></span
-        ></a
+    <a class="visually-hidden-focusable skip-link" href="#main-content"
+      >Skip to content</a
+    >
+    <header class="app-header">
+      <button
+        class="btn btn-sm btn-outline-secondary d-md-none"
+        type="button"
+        data-bs-toggle="offcanvas"
+        data-bs-target="#navigation"
+        aria-controls="navigation"
+        aria-label="Open navigation"
       >
-      <nav aria-label="Main navigation">
-        <button class="nav-button active" data-view="inbox">
-          Owner inbox <span id="handoff-count" class="nav-count">0</span>
-        </button>
-        <button class="nav-button" data-view="customer">Customer chat</button>
-        <button class="nav-button" data-view="operations">Shop activity</button>
-      </nav>
-      <span class="mode"><i></i><span id="mode">Connecting</span></span>
+        <svg class="icon" aria-hidden="true">
+          <use href="/static/vendor/bootstrap-icons.svg#list"></use>
+        </svg>
+      </button>
+      <span id="brand-name" class="business-name">Business front desk</span
+      ><span class="header-divider">/</span><span>Front desk</span>
+      <a href="#configuration" class="connection-status ms-auto" id="mode"
+        >Connecting…</a
+      >
     </header>
-    <main>
-      <section class="page-heading">
-        <div>
-          <p class="eyebrow">A LITTLE LESS BUSYWORK.</p>
-          <h1 id="page-title">A good day starts here.</h1>
-          <p id="page-subtitle">
-            Your conversations, visits, and follow-ups in one place.
-          </p>
+    <div class="app-layout">
+      <aside
+        id="navigation"
+        class="sidebar offcanvas-md offcanvas-start"
+        tabindex="-1"
+        aria-labelledby="navigation-title"
+      >
+        <div class="offcanvas-header">
+          <h2 id="navigation-title" class="offcanvas-title">Navigation</h2>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="offcanvas"
+            data-bs-target="#navigation"
+            aria-label="Close navigation"
+          ></button>
         </div>
-        <div class="clock-card">
-          <span class="eyebrow">DEMO CLOCK <span id="timezone"></span></span
-          ><strong id="clock">Loading…</strong>
-          <div class="clock-actions">
-            <button data-step="15_minutes">+15 min</button
-            ><button data-step="1_day">+1 day</button
-            ><button data-step="friday_morning">Friday, 8 am ↗</button
-            ><button id="reset" class="text-button">Reset demo</button>
+        <div class="offcanvas-body">
+          <nav
+            aria-label="Main navigation"
+            class="nav flex-column"
+            id="main-nav"
+          >
+            <a class="nav-link" href="#requirements"
+              ><svg class="icon" aria-hidden="true">
+                <use
+                  href="/static/vendor/bootstrap-icons.svg#list-check"
+                ></use></svg
+              >Requirements</a
+            >
+            <div class="nav-section">Workflows</div>
+            <a class="nav-link" href="#customer"
+              ><svg class="icon" aria-hidden="true">
+                <use
+                  href="/static/vendor/bootstrap-icons.svg#chat-left-text"
+                ></use></svg
+              >Customer chat &amp; booking</a
+            >
+            <a class="nav-link" href="#inbox"
+              ><svg class="icon" aria-hidden="true">
+                <use href="/static/vendor/bootstrap-icons.svg#inbox"></use></svg
+              >Owner inbox <span id="handoff-count" class="nav-count"></span
+            ></a>
+            <a class="nav-link" href="#appointments"
+              ><svg class="icon" aria-hidden="true">
+                <use
+                  href="/static/vendor/bootstrap-icons.svg#calendar3"
+                ></use></svg
+              >Appointments</a
+            >
+            <a class="nav-link" href="#quotes"
+              ><svg class="icon" aria-hidden="true">
+                <use
+                  href="/static/vendor/bootstrap-icons.svg#file-earmark-text"
+                ></use></svg
+              >Quotes</a
+            >
+            <a class="nav-link" href="#rules"
+              ><svg class="icon" aria-hidden="true">
+                <use
+                  href="/static/vendor/bootstrap-icons.svg#sliders"
+                ></use></svg
+              >Business rules</a
+            >
+            <a class="nav-link" href="#automation"
+              ><svg class="icon" aria-hidden="true">
+                <use
+                  href="/static/vendor/bootstrap-icons.svg#clock-history"
+                ></use></svg
+              >Automations &amp; reports</a
+            >
+            <a class="nav-link" href="#activity"
+              ><svg class="icon" aria-hidden="true">
+                <use
+                  href="/static/vendor/bootstrap-icons.svg#journal-text"
+                ></use></svg
+              >Activity log</a
+            >
+            <div class="nav-section">Setup</div>
+            <a class="nav-link" href="#configuration"
+              ><svg class="icon" aria-hidden="true">
+                <use href="/static/vendor/bootstrap-icons.svg#gear"></use></svg
+              >Configuration</a
+            >
+          </nav>
+          <div class="sidebar-footer">
+            Local application<br />Messages and calendars are simulated.
           </div>
         </div>
-      </section>
-      <section class="stats" aria-label="Shop summary" id="stats"></section>
-      <section id="view-inbox" class="view">
-        <div class="inbox-layout">
-          <aside class="panel customer-list-panel">
-            <div class="panel-heading">
-              <h2>Conversations</h2>
-              <span class="muted" id="customer-total"></span>
-            </div>
-            <div id="customer-list"></div>
-            <div class="list-footer">
-              <span class="status-dot"></span> The front desk is on it.
-            </div>
-          </aside>
-          <section class="panel thread-panel">
-            <div class="panel-heading thread-heading">
-              <div>
-                <h2 id="thread-name">Select a customer</h2>
-                <span class="muted" id="thread-address"></span>
-              </div>
-              <span id="thread-state"></span>
-            </div>
-            <div id="handoff-banner" class="handoff-banner" hidden></div>
-            <div
-              id="owner-thread"
-              class="messages"
-              aria-live="polite"
-              aria-label="Customer conversation"
-            ></div>
-            <form id="reply-form" class="composer">
-              <label for="reply-text">Reply as the owner</label
-              ><textarea
-                id="reply-text"
-                rows="2"
-                maxlength="2000"
-                placeholder="Add your personal touch…"
-                required
-              ></textarea>
-              <div class="composer-actions">
-                <label class="check-label"
-                  ><input type="checkbox" id="reply-resume" /> Resume assistant
-                  after sending</label
-                ><button type="submit" class="primary">Send reply ↗</button>
-              </div>
-            </form>
-          </section>
-          <aside class="context-column">
-            <section class="panel">
-              <div class="panel-heading">
-                <h2>Customer details</h2>
-                <span class="tiny-label">ON FILE</span>
-              </div>
-              <div id="customer-details" class="panel-body"></div>
-            </section>
-            <section class="panel note-card">
-              <p class="eyebrow">MAKE IT YOUR FRONT DESK</p>
-              <h2>A new rule? Just say it.</h2>
-              <p>
-                Update opening days, save a business detail, or schedule a
-                report in the owner assistant below.
-              </p>
-              <button id="go-owner" class="text-button">
-                Open owner assistant ↗
-              </button>
-            </section>
-          </aside>
+      </aside>
+      <main id="main-content" tabindex="-1">
+        <div class="demo-toolbar" aria-label="Demo clock controls">
+          <div>
+            <strong>Demo clock</strong><time id="clock">Loading…</time
+            ><span id="timezone" class="secondary-text"></span>
+          </div>
+          <div class="d-flex flex-wrap gap-1">
+            <button
+              class="btn btn-sm btn-outline-secondary"
+              data-step="15_minutes"
+            >
+              +15 minutes</button
+            ><button class="btn btn-sm btn-outline-secondary" data-step="1_day">
+              +1 day</button
+            ><button
+              class="btn btn-sm btn-outline-secondary"
+              data-step="friday_morning"
+            >
+              Next Friday, 8 am</button
+            ><button
+              class="btn btn-sm btn-link"
+              data-bs-toggle="modal"
+              data-bs-target="#reset-modal"
+            >
+              Reset demo
+            </button>
+          </div>
         </div>
-      </section>
-      <section id="view-customer" class="view" hidden>
-        <div class="customer-layout">
-          <section class="panel simulator">
-            <div class="panel-heading">
-              <div>
-                <p class="eyebrow">CUSTOMER VIEW</p>
-                <h2>Let’s get it taken care of.</h2>
+        <div class="page-header">
+          <div>
+            <h1 id="page-title">Requirements</h1>
+            <p id="page-description">
+              Where to find and verify each requirement.
+            </p>
+          </div>
+          <span id="page-reference" class="requirement-reference"
+            >Requirements 1–5</span
+          >
+        </div>
+        <div
+          id="request-error"
+          class="alert alert-danger mx-4"
+          role="alert"
+          hidden
+        ></div>
+        <div class="page-content">
+          <section id="view-requirements" class="view">
+            <div class="section-heading">
+              <h2>Requirement index</h2>
+              <span id="seed-summary" class="secondary-text"></span>
+            </div>
+            <div class="table-responsive">
+              <table class="table requirement-table align-middle">
+                <thead>
+                  <tr>
+                    <th scope="col">Requirement</th>
+                    <th scope="col">Functionality</th>
+                    <th scope="col">Location</th>
+                    <th scope="col">How to verify</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">1. Local app</th>
+                    <td>
+                      Saved customers, four technicians, existing appointments
+                      and quotes
+                    </td>
+                    <td>
+                      <a href="#customer">Customer details</a><br /><a
+                        href="#appointments"
+                        >Appointments &amp; technicians</a
+                      ><br /><a href="#quotes">Quotes</a>
+                    </td>
+                    <td>
+                      Choose a seeded customer. Inspect the saved address,
+                      access code, visit history and quote status.
+                    </td>
+                  </tr>
+                  <tr>
+                    <th scope="row">2. Conversations &amp; booking</th>
+                    <td>
+                      Returning customer context and answers from saved business
+                      information
+                    </td>
+                    <td><a href="#customer">Customer chat &amp; booking</a></td>
+                    <td>
+                      Ask for the saved address or previous visit. Ask about
+                      services or hours.
+                    </td>
+                  </tr>
+                  <tr>
+                    <th scope="row">2. Conversations &amp; booking</th>
+                    <td>
+                      Missing details, available visits, booking recheck and
+                      simulated confirmation
+                    </td>
+                    <td>
+                      <a href="#customer">Customer chat &amp; booking</a
+                      ><br /><a href="#appointments">Appointments</a>
+                    </td>
+                    <td>
+                      Describe a service request, provide missing details,
+                      select a visit and inspect the confirmation.
+                    </td>
+                  </tr>
+                  <tr>
+                    <th scope="row">3. Owner control</th>
+                    <td>
+                      Plain-language instructions change future availability
+                    </td>
+                    <td><a href="#rules">Business rules</a></td>
+                    <td>
+                      Send “We stopped doing Sunday calls”. Check the opening
+                      days and request a Sunday visit.
+                    </td>
+                  </tr>
+                  <tr>
+                    <th scope="row">3. Owner control</th>
+                    <td>
+                      Handoff summary, paused automatic replies, owner reply and
+                      resume
+                    </td>
+                    <td><a href="#inbox">Owner inbox</a></td>
+                    <td>
+                      Request the owner in customer chat. Review the summary,
+                      reply, then resume the assistant.
+                    </td>
+                  </tr>
+                  <tr>
+                    <th scope="row">3. Owner control</th>
+                    <td>
+                      Triggers recorded for bookings, rule changes and handoffs
+                    </td>
+                    <td><a href="#activity">Activity log</a></td>
+                    <td>Inspect the action, reason and source message.</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">4. Follow-up</th>
+                    <td>Day-before reminders and follow-ups on sent quotes</td>
+                    <td>
+                      <a href="#automation">Automations &amp; reports</a
+                      ><br /><a href="#quotes">Quotes</a>
+                    </td>
+                    <td>
+                      Advance the demo clock past 8 am. Inspect the delivery log
+                      and customer conversations.
+                    </td>
+                  </tr>
+                  <tr>
+                    <th scope="row">4. Follow-up</th>
+                    <td>Morning rundown and owner-defined report schedules</td>
+                    <td><a href="#automation">Automations &amp; reports</a></td>
+                    <td>
+                      Schedule “Every Friday, tell me who is still waiting on a
+                      quote”. Advance to Friday, 8 am. The report lists
+                      estimates the business owes.
+                    </td>
+                  </tr>
+                  <tr>
+                    <th scope="row">5. Local delivery</th>
+                    <td>
+                      Docker startup, provider configuration, Git history and
+                      documentation
+                    </td>
+                    <td>
+                      <a href="#configuration"
+                        >Configuration &amp; documentation</a
+                      >
+                    </td>
+                    <td>
+                      Inspect the provider settings, business configuration,
+                      README walkthrough and implementation note.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="section-note">
+              The demo clock controls above are available on every page. Seed
+              data can be restored with Reset demo.
+            </p>
+          </section>
+          <section id="view-customer" class="view" hidden>
+            <div class="workflow-intro">
+              <span
+                >Describe the request, provide missing details, then select an
+                available visit.</span
+              ><a href="#appointments">View appointments</a>
+            </div>
+            <div class="customer-workspace">
+              <section class="conversation-pane" aria-label="Customer chat">
+                <div class="pane-toolbar">
+                  <label for="customer-select" class="form-label mb-0"
+                    >Customer</label
+                  ><select
+                    id="customer-select"
+                    class="form-select form-select-sm"
+                  ></select
+                  ><span
+                    id="customer-status"
+                    class="secondary-text ms-auto"
+                  ></span>
+                </div>
+                <div
+                  id="customer-paused"
+                  class="alert alert-warning m-3"
+                  hidden
+                >
+                  Automatic replies are paused. The owner will receive messages
+                  here.
+                </div>
+                <div
+                  id="customer-thread"
+                  class="messages"
+                  aria-live="polite"
+                  aria-label="Customer conversation"
+                ></div>
+                <div
+                  id="slot-options"
+                  class="slot-options"
+                  aria-label="Available appointments"
+                ></div>
+                <form id="customer-form" class="composer">
+                  <label class="form-label" for="customer-text">Message</label
+                  ><textarea
+                    id="customer-text"
+                    class="form-control"
+                    rows="2"
+                    maxlength="2000"
+                    placeholder="Describe the service request"
+                    required
+                  ></textarea>
+                  <div class="composer-actions">
+                    <span class="secondary-text"
+                      >Enter to send · Shift+Enter for a new line</span
+                    ><button type="submit" class="btn btn-primary">
+                      Send message
+                    </button>
+                  </div>
+                </form>
+                <details class="examples-section">
+                  <summary>Example requests</summary>
+                  <div id="customer-examples" class="examples"></div>
+                  <p class="secondary-text">
+                    For a new customer in Guided demo, enter “Name: Alex Morgan”
+                    and “Address: 55 Birch Road”.
+                  </p>
+                </details>
+              </section>
+              <aside class="record-pane">
+                <h2>Customer details</h2>
+                <p class="secondary-text">
+                  Saved information used by the assistant.
+                </p>
+                <div id="sim-details"></div>
+              </aside>
+            </div>
+          </section>
+          <section id="view-inbox" class="view" hidden>
+            <div class="workflow-intro">
+              <span
+                >Conversations requiring owner judgment appear first. Automatic
+                replies remain paused until resumed.</span
+              ><a href="#customer">Open customer chat</a>
+            </div>
+            <div class="inbox-workspace">
+              <aside class="conversation-list">
+                <div class="pane-toolbar">
+                  <h2>Conversations</h2>
+                  <span id="customer-total" class="secondary-text"></span>
+                </div>
+                <div id="customer-list"></div>
+              </aside>
+              <section class="conversation-pane">
+                <div class="pane-toolbar">
+                  <div>
+                    <h2 id="thread-name">Customer</h2>
+                    <div id="thread-address" class="secondary-text"></div>
+                  </div>
+                  <span id="thread-state" class="ms-auto"></span>
+                </div>
+                <div
+                  id="handoff-banner"
+                  class="alert alert-warning m-3"
+                  hidden
+                ></div>
+                <div
+                  id="owner-thread"
+                  class="messages"
+                  aria-live="polite"
+                  aria-label="Owner view of conversation"
+                ></div>
+                <form id="reply-form" class="composer">
+                  <label for="reply-text" class="form-label">Owner reply</label
+                  ><textarea
+                    id="reply-text"
+                    class="form-control"
+                    rows="2"
+                    maxlength="2000"
+                    placeholder="Reply to this customer"
+                    required
+                  ></textarea>
+                  <div class="composer-actions">
+                    <div class="form-check">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        id="reply-resume"
+                      /><label class="form-check-label" for="reply-resume"
+                        >Resume assistant after sending</label
+                      >
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                      Send reply
+                    </button>
+                  </div>
+                </form>
+              </section>
+              <aside class="record-pane">
+                <h2>Customer details</h2>
+                <div id="customer-details"></div>
+              </aside>
+            </div>
+          </section>
+          <section id="view-appointments" class="view" hidden>
+            <div class="section-heading">
+              <h2>Appointments</h2>
+              <div class="table-filters">
+                <label for="visit-range">Show</label
+                ><select id="visit-range" class="form-select form-select-sm">
+                  <option value="upcoming">Upcoming</option>
+                  <option value="today">Today</option>
+                  <option value="all">All, including history</option></select
+                ><label for="visit-tech">Technician</label
+                ><select id="visit-tech" class="form-select form-select-sm">
+                  <option value="all">All technicians</option>
+                </select>
               </div>
-              <label class="select-label"
-                >Chatting as<select
-                  id="customer-select"
-                  aria-label="Chatting as"
-                ></select
-              ></label>
             </div>
-            <div id="customer-paused" class="handoff-banner" hidden>
-              The owner is handling this conversation. Your messages will reach
-              them here.
+            <div id="visits" class="table-responsive"></div>
+            <div class="section-heading mt-4">
+              <h2>Technicians</h2>
+              <span id="team-count" class="secondary-text"></span>
             </div>
-            <div
-              id="customer-thread"
-              class="messages"
-              aria-live="polite"
-              aria-label="Front desk chat"
-            ></div>
-            <div id="slot-options" class="slot-options"></div>
-            <div id="customer-examples" class="examples"></div>
-            <form id="customer-form" class="composer">
-              <label for="customer-text">Message the front desk</label>
-              <div class="input-row">
+            <div id="team" class="table-responsive"></div>
+            <p class="section-note">
+              Appointments are created in
+              <a href="#customer">Customer chat &amp; booking</a>. Availability
+              is rechecked before a technician is assigned. Gate codes are
+              copied into the appointment.
+            </p>
+          </section>
+          <section id="view-quotes" class="view" hidden>
+            <div class="workflow-intro">
+              <span
+                ><strong>Owed:</strong> the business still needs to send an
+                estimate. <strong>Sent:</strong> the customer has received
+                it.</span
+              ><a href="#automation">View quote follow-ups</a>
+            </div>
+            <div class="section-heading">
+              <h2>Quote records</h2>
+              <div class="table-filters">
+                <label for="quote-filter">Status</label
+                ><select id="quote-filter" class="form-select form-select-sm">
+                  <option value="all">All statuses</option>
+                  <option value="owed">Owed</option>
+                  <option value="sent">Sent</option>
+                  <option value="accepted">Accepted</option>
+                  <option value="declined">Declined</option>
+                </select>
+              </div>
+            </div>
+            <div id="quotes" class="table-responsive"></div>
+            <p class="section-note">
+              Changing a quote to Sent records a simulated message. Accepted and
+              Declined stop follow-up. The “Quotes owed” report excludes sent
+              quotes.
+            </p>
+          </section>
+          <section id="view-rules" class="view" hidden>
+            <div class="rules-workspace">
+              <section>
+                <h2>Current business rules</h2>
+                <div id="business-details"></div>
+              </section>
+              <section class="instruction-section">
+                <h2>Update a rule</h2>
+                <form id="rule-form">
+                  <label for="rule-text" class="form-label"
+                    >Owner instruction</label
+                  ><textarea
+                    id="rule-text"
+                    class="form-control"
+                    rows="3"
+                    maxlength="2000"
+                    placeholder="We stopped doing Sunday calls"
+                    required
+                  ></textarea>
+                  <p class="form-text">
+                    Change an opening day or save information the assistant
+                    should use.
+                  </p>
+                  <button type="submit" class="btn btn-primary">
+                    Apply instruction
+                  </button>
+                </form>
+                <div class="examples">
+                  <button
+                    class="btn btn-sm btn-outline-secondary"
+                    data-fill-target="rule-text"
+                    data-example="We stopped doing Sunday calls"
+                  >
+                    Close Sundays</button
+                  ><button
+                    class="btn btn-sm btn-outline-secondary"
+                    data-fill-target="rule-text"
+                    data-example="Remember parking = Use the side lot"
+                  >
+                    Save a business detail
+                  </button>
+                </div>
+                <div
+                  id="rule-result"
+                  class="instruction-result"
+                  aria-live="polite"
+                  hidden
+                ></div>
+              </section>
+            </div>
+            <div class="section-heading mt-4">
+              <h2>Owner instruction history</h2>
+              <a href="#activity">View triggers in activity log</a>
+            </div>
+            <div id="owner-messages" class="instruction-history"></div>
+          </section>
+          <section id="view-automation" class="view" hidden>
+            <div class="section-heading">
+              <h2>Automatic customer messages</h2>
+              <span class="secondary-text">Controlled by the demo clock</span>
+            </div>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Workflow</th>
+                    <th>When it runs</th>
+                    <th>Who receives it</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th>Appointment reminder</th>
+                    <td>
+                      8 am the day before a visit. Later bookings for tomorrow
+                      are picked up automatically.
+                    </td>
+                    <td>Customers with a visit tomorrow</td>
+                  </tr>
+                  <tr>
+                    <th>Sent quote follow-up</th>
+                    <td>
+                      8 am, after three quiet days. One follow-up per sent
+                      version.
+                    </td>
+                    <td>Customers with a sent, unresolved quote</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="section-note">
+              Customer automation pauses during an owner handoff.
+            </p>
+            <div class="section-heading mt-4">
+              <h2>Report schedules</h2>
+              <span class="secondary-text"
+                >Daily or one weekday, at a local time</span
+              >
+            </div>
+            <div id="schedules" class="table-responsive"></div>
+            <form id="schedule-form" class="report-form">
+              <label for="schedule-text" class="form-label"
+                >Schedule or request a report</label
+              >
+              <div class="d-flex gap-2 align-items-start">
                 <textarea
-                  id="customer-text"
+                  id="schedule-text"
+                  class="form-control"
                   rows="2"
                   maxlength="2000"
-                  placeholder="Tell us what needs attention…"
+                  placeholder="Every Friday, tell me who is still waiting on a quote"
                   required
                 ></textarea
-                ><button type="submit" class="primary">Send ↗</button>
+                ><button type="submit" class="btn btn-primary text-nowrap">
+                  Send instruction
+                </button>
               </div>
+              <div class="examples">
+                <button
+                  class="btn btn-sm btn-outline-secondary"
+                  data-fill-target="schedule-text"
+                  data-example="Every Friday, tell me who is still waiting on a quote"
+                >
+                  Schedule Friday quotes owed</button
+                ><button
+                  class="btn btn-sm btn-outline-secondary"
+                  data-fill-target="schedule-text"
+                  data-example="Show today's rundown"
+                >
+                  Run morning rundown now</button
+                ><button
+                  class="btn btn-sm btn-outline-secondary"
+                  data-fill-target="schedule-text"
+                  data-example="Every day at 9:30 am, show open handoffs"
+                >
+                  Schedule daily handoffs
+                </button>
+              </div>
+              <div
+                id="schedule-result"
+                class="instruction-result"
+                aria-live="polite"
+                hidden
+              ></div>
             </form>
+            <div class="section-heading mt-4">
+              <h2>Delivered reports</h2>
+              <span class="secondary-text"
+                >Morning rundown · Quotes owed · Open handoffs</span
+              >
+            </div>
+            <div id="reports"></div>
+            <div class="section-heading mt-4">
+              <h2>Message delivery log</h2>
+              <div class="table-filters">
+                <label for="delivery-filter">Type</label
+                ><select
+                  id="delivery-filter"
+                  class="form-select form-select-sm"
+                >
+                  <option value="all">All deliveries</option>
+                  <option value="confirmation">Booking confirmations</option>
+                  <option value="reminder">Visit reminders</option>
+                  <option value="quote_followup">Quote follow-ups</option>
+                  <option value="report">Reports</option>
+                  <option value="quote">Sent quotes</option>
+                </select>
+              </div>
+            </div>
+            <div id="deliveries" class="table-responsive"></div>
           </section>
-          <aside class="context-column">
-            <section class="panel">
-              <div class="panel-heading"><h2>A familiar face</h2></div>
-              <div id="sim-details" class="panel-body"></div>
-            </section>
-            <section class="panel note-card">
-              <p class="eyebrow">TRY THE WHOLE CONVERSATION</p>
-              <h2>From a leak to a booked visit.</h2>
-              <p>
-                Choose a sample message, pick a visit, then check the owner
-                inbox. Saved addresses and gate codes travel with the booking.
-              </p>
-              <p class="muted">
-                For the new customer, use “Name: Alex Morgan”, then “Address: 55
-                Birch Road”.
-              </p>
-            </section>
-          </aside>
+          <section id="view-activity" class="view" hidden>
+            <div class="section-heading">
+              <h2>Recorded actions</h2>
+              <label class="visually-hidden" for="activity-search"
+                >Filter actions</label
+              ><input
+                type="search"
+                id="activity-search"
+                class="form-control form-control-sm search-input"
+                placeholder="Filter actions, reasons or messages"
+              />
+            </div>
+            <div id="events" class="table-responsive"></div>
+          </section>
+          <section id="view-configuration" class="view" hidden>
+            <h2>Application configuration</h2>
+            <dl id="app-configuration" class="configuration-list"></dl>
+            <h2 class="mt-4">Local delivery</h2>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Requirement</th>
+                    <th>Implementation</th>
+                    <th>Location</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th>One-command startup</th>
+                    <td><code>docker compose up --build</code></td>
+                    <td><code>compose.yaml</code></td>
+                  </tr>
+                  <tr>
+                    <th>Persistent storage</th>
+                    <td>
+                      SQLite in a Docker volume; records survive restarts.
+                    </td>
+                    <td><code>front-desk-data</code></td>
+                  </tr>
+                  <tr>
+                    <th>Business configuration</th>
+                    <td>
+                      Name, services, hours, timezone, visit duration and seed
+                      technicians.
+                    </td>
+                    <td><code>desk/business.json</code></td>
+                  </tr>
+                  <tr>
+                    <th>AI provider</th>
+                    <td>
+                      Anthropic by default; provider, model and endpoint are
+                      configurable.
+                    </td>
+                    <td><code>.env</code></td>
+                  </tr>
+                  <tr>
+                    <th>Local Git history</th>
+                    <td>
+                      Implementation and documentation are committed locally.
+                    </td>
+                    <td><code>.git</code></td>
+                  </tr>
+                  <tr>
+                    <th>Walkthrough</th>
+                    <td>
+                      Startup, provider setup, workflow verification and scope.
+                    </td>
+                    <td>
+                      <a
+                        href="/api/documentation/readme"
+                        target="_blank"
+                        rel="noopener"
+                        >Read README</a
+                      >
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>Implementation note</th>
+                    <td>
+                      Design choices, assumptions, cuts, AI-tool use and
+                      verification.
+                    </td>
+                    <td>
+                      <a
+                        href="/api/documentation/design"
+                        target="_blank"
+                        rel="noopener"
+                        >Read implementation note</a
+                      >
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <h2 class="mt-4">Scope</h2>
+            <p>
+              Messages and calendars are simulated. Login, route optimization
+              and arbitrary workflows are deferred. Larger deployments would use
+              tenant-scoped PostgreSQL records and a durable queue.
+            </p>
+          </section>
         </div>
-      </section>
-      <section id="view-operations" class="view" hidden>
-        <div class="operations-layout">
-          <section class="panel">
-            <div class="panel-heading">
-              <h2>Visits on the books</h2>
-              <span class="tiny-label">LOCAL CALENDAR</span>
-            </div>
-            <div id="visits" class="table-wrap"></div>
-          </section>
-          <section class="panel">
-            <div class="panel-heading">
-              <h2>The team</h2>
-              <span class="tiny-label" id="team-count"></span>
-            </div>
-            <div id="team" class="panel-body"></div>
-            <div
-              id="business-details"
-              class="panel-body business-details"
-            ></div>
-          </section>
-          <section class="panel">
-            <div class="panel-heading">
-              <h2>Quotes</h2>
-              <span class="muted">Owed → sent → resolved</span>
-            </div>
-            <div id="quotes" class="panel-body"></div>
-          </section>
-          <section class="panel">
-            <div class="panel-heading">
-              <h2>On autopilot</h2>
-              <span class="status-pill">Active</span>
-            </div>
-            <div id="schedules" class="panel-body"></div>
-            <div class="automation-note">
-              <strong>Every morning at 8</strong>
-              <p>
-                Tomorrow’s visit reminders and follow-ups on quotes quiet for 3
-                days.
-              </p>
-            </div>
-          </section>
-          <section class="panel audit-panel">
-            <div class="panel-heading">
-              <h2>The paper trail</h2>
-              <span class="muted">What happened, and why</span>
-            </div>
-            <div id="events" class="panel-body"></div>
-          </section>
+      </main>
+    </div>
+    <div
+      class="modal fade"
+      id="reset-modal"
+      tabindex="-1"
+      aria-labelledby="reset-title"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2 class="modal-title fs-5" id="reset-title">Reset demo data</h2>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            Restore the seeded customers, appointments, quotes, rules and
+            reports. This replaces changes made during the demo and resets the
+            clock to November 19, 2026 at 7:45 am.
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-outline-secondary" data-bs-dismiss="modal">
+              Cancel</button
+            ><button class="btn btn-danger" id="confirm-reset">
+              Reset demo
+            </button>
+          </div>
         </div>
-      </section>
-      <section id="owner-assistant" class="panel owner-assistant">
-        <div class="assistant-intro">
-          <span class="assistant-symbol">✳</span>
-          <p class="eyebrow">FOR THE OWNER</p>
-          <h2>Tell your desk<br />what you need.</h2>
-          <p>Business rules, recurring reports, and your morning rundown.</p>
-          <div id="owner-examples" class="examples"></div>
+      </div>
+    </div>
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+      <div
+        id="notice"
+        class="toast"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        <div class="d-flex">
+          <div class="toast-body" id="notice-text"></div>
+          <button
+            type="button"
+            class="btn-close me-2 m-auto"
+            data-bs-dismiss="toast"
+            aria-label="Close notification"
+          ></button>
         </div>
-        <div class="assistant-conversation">
-          <div
-            id="owner-messages"
-            class="messages"
-            aria-live="polite"
-            aria-label="Owner assistant"
-          ></div>
-          <form id="owner-form" class="composer">
-            <label for="owner-text">Instruction to your assistant</label>
-            <div class="input-row">
-              <textarea
-                id="owner-text"
-                rows="2"
-                maxlength="2000"
-                placeholder="Every Friday, tell me who is still waiting on a quote"
-                required
-              ></textarea
-              ><button type="submit" class="primary">Send ↗</button>
-            </div>
-          </form>
-        </div>
-      </section>
-      <footer>
-        <span
-          >Northside front desk <span class="footer-dot">•</span> Messaging and
-          calendars are simulated.</span
-        ><span id="footer-mode"></span>
-      </footer>
-    </main>
-    <div id="toast" role="status" hidden></div>
+      </div>
+    </div>
   </body>
 </html>

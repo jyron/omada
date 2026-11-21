@@ -45,6 +45,7 @@ def test_anthropic_structured_output_through_real_provider_translation(monkeypat
         assert payload["model"] == "claude-sonnet-5-5"
         assert "1402" in json.dumps(payload["messages"])
         schema = payload["output_config"]["format"]["schema"]
+        assert set(schema["required"]) == set(schema["properties"])
         assert "maxLength" not in schema["properties"]["body"]
         assert "maximum" not in schema["properties"]["choice"]["anyOf"][0]
         return httpx.Response(200, json={
