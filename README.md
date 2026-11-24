@@ -104,7 +104,21 @@ Reports are deliberately limited to **morning rundown**, **quotes owed**, and **
 
 Day-before reminders run at 8 am. Visits booked for tomorrow later in the day receive their reminder on the next background pass. Sent quotes receive one follow-up per sent version after three quiet days, at the next 8 am sweep. Re-sending requires moving the quote out of **Sent** and back to **Sent**. The demo records messages locally in conversation history; it does not contact customers or external calendars.
 
-## Local development
+## Cloudflare demo
+
+Live demo: [omada.jyron-dev.workers.dev](https://omada.jyron-dev.workers.dev).
+
+The Cloudflare project is named `omada`. `cloudflare/worker.ts` routes requests to one shared Cloudflare Container running the same Python app and fictional business records. The Anthropic key is a Worker secret passed to the container at startup. It is not included in the image or browser assets.
+
+The deployment uses Cloudflare's native container snapshots after successful changes and every five minutes. A scheduled Worker keeps background processing active without an open browser. On a restart, the last snapshot for the current image is restored. All visitors share this demo, including bookings and the Reset demo control.
+
+Cloudflare snapshots are tied to an image version and have a 30-day retention window refreshed by restoration. Deploying a changed container image starts fresh fictional records; snapshots are for continuity of the hosted demonstration, while the local Docker volume remains the persistent local installation. See [Cloudflare's snapshot documentation](https://developers.cloudflare.com/containers/guides/snapshots/).
+
+Deployment requires Docker, Node.js, Cloudflare authentication, and Containers enabled on the account. From the repository, run `npm ci`, `npx wrangler types`, and `npm run deploy`. For a new deployment, set `ANTHROPIC_API_KEY` with `npx wrangler secret put ANTHROPIC_API_KEY`. `npm run deploy:check` validates types and builds without publishing. Wrangler prints the public `omada` URL after deployment.
+
+The initial hosted verification passed TypeScript checks and a container build, then verified the public health endpoint, interface assets, documentation, live Claude appointment offers, booking confirmation, and snapshot creation. The resulting appointment was also checked in the internal browser.
+
+## Local Python development
 
 Python 3.11 or newer:
 

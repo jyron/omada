@@ -5,3 +5,6 @@ __pycache__/
 data/
 .pytest_cache/
 node_modules/
+.wrangler/
+.dev.vars*
+worker-configuration.d.ts

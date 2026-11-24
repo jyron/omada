@@ -1,0 +1,22 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "omada",
+  "main": "cloudflare/worker.ts",
+  "compatibility_date": "2026-11-23",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "upload_source_maps": true,
+  "observability": { "enabled": true, "head_sampling_rate": 0.1 },
+  "vars": { "LLM_MODEL": "anthropic/claude-sonnet-5-5" },
+  "containers": [{
+    "name": "omada",
+    "class_name": "Omada",
+    "scheduling_policy": "durable_object",
+    "images": { "app": { "dockerfile": "./Dockerfile" } }
+  }],
+  "durable_objects": {
+    "bindings": [{ "name": "DESK", "class_name": "Omada" }]
+  },
+  "exports": { "Omada": { "type": "durable-object", "storage": "sqlite" } },
+  "triggers": { "crons": ["*/5 * * * *"] }
+}
